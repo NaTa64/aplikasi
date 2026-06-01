@@ -747,12 +747,12 @@ if menu == "📚 Tahapan":
                 <div style="text-align:center;color:#94a3b8;font-size:1.1rem;font-weight:700;">↓</div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
                 <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px 12px;text-align:center;">
-                <div style="font-size:1.3rem;">🏍️</div>
+                <div style="font-size:1.3rem;">🛵</div>
                 <div style="font-weight:700;color:#166534;font-size:0.82rem;margin-top:4px;">Tim Motor (PRC)</div>
                 <div style="color:#64748b;font-size:0.75rem;">Gangguan Ringan</div>
                 </div>
                 <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:10px 12px;text-align:center;">
-                <div style="font-size:1.3rem;">🚗</div>
+                <div style="font-size:1.3rem;">🛻</div>
                 <div style="font-weight:700;color:#991b1b;font-size:0.82rem;margin-top:4px;">Tim Mobil (DGA)</div>
                 <div style="color:#64748b;font-size:0.75rem;">Gangguan Berat</div>
                 </div>
@@ -987,58 +987,9 @@ if menu == "📚 Tahapan":
         # =============================
         # BAGIAN 5 — OUTPUT SISTEM & ALUR TAHAPAN
         # =============================
-        st.markdown("## 📦 Output Sistem & Alur Tahapan Penelitian")
+        st.markdown("## 📦 Alur Tahapan Penelitian & Output Penelitian")
 
-        col_out, col_steps = st.columns([1, 1.1])
-
-        with col_out:
-            st.markdown("""
-            <div style="
-                background:#ffffff;border:1px solid #e2e8f0;border-radius:14px;
-                padding:20px 22px;box-shadow:0 2px 8px rgba(15,23,42,0.05);
-            ">
-                <div style="font-size:0.75rem;color:#64748b;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:14px;">
-                    Output yang Dihasilkan Sistem
-                </div>
-                <div style="display:grid;gap:9px;">
-                    <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px 14px;display:flex;gap:10px;align-items:center;">
-                        <span style="font-size:1.1rem;">🏷️</span>
-                        <div>
-                            <div style="font-weight:700;color:#166534;font-size:0.86rem;">Klasifikasi Gangguan</div>
-                            <div style="color:#64748b;font-size:0.78rem;">Prediksi kelas Ringan atau Berat berdasarkan atribut gangguan</div>
-                        </div>
-                    </div>
-                    <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:10px 14px;display:flex;gap:10px;align-items:center;">
-                        <span style="font-size:1.1rem;">🌲</span>
-                        <div>
-                            <div style="font-weight:700;color:#1e40af;font-size:0.86rem;">Visualisasi Pohon Keputusan</div>
-                            <div style="color:#64748b;font-size:0.78rem;">Struktur pohon ID3 yang terbentuk dari data latih</div>
-                        </div>
-                    </div>
-                    <div style="background:#faf5ff;border:1px solid #ddd6fe;border-radius:10px;padding:10px 14px;display:flex;gap:10px;align-items:center;">
-                        <span style="font-size:1.1rem;">🧮</span>
-                        <div>
-                            <div style="font-weight:700;color:#6d28d9;font-size:0.86rem;">Entropy & Information Gain</div>
-                            <div style="color:#64748b;font-size:0.78rem;">Perhitungan detail pemilihan node pada setiap level</div>
-                        </div>
-                    </div>
-                    <div style="background:#fefce8;border:1px solid #fde68a;border-radius:10px;padding:10px 14px;display:flex;gap:10px;align-items:center;">
-                        <span style="font-size:1.1rem;">📜</span>
-                        <div>
-                            <div style="font-weight:700;color:#92400e;font-size:0.86rem;">Aturan Keputusan IF-THEN</div>
-                            <div style="color:#64748b;font-size:0.78rem;">Aturan yang dapat dibaca dan dijelaskan secara langsung</div>
-                        </div>
-                    </div>
-                    <div style="background:#fff1f2;border:1px solid #fecdd3;border-radius:10px;padding:10px 14px;display:flex;gap:10px;align-items:center;">
-                        <span style="font-size:1.1rem;">📋</span>
-                        <div>
-                            <div style="font-weight:700;color:#9f1239;font-size:0.86rem;">Evaluasi Performa Model</div>
-                            <div style="color:#64748b;font-size:0.78rem;">Confusion matrix, akurasi, presisi, recall, F1-score, dan cross validation</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
+        col_steps, col_out = st.columns([1.1, 1])
 
         with col_steps:
             steps_data = [
@@ -1079,6 +1030,34 @@ if menu == "📚 Tahapan":
             html_steps.append('</div>')
 
             st.markdown("".join(html_steps), unsafe_allow_html=True)
+
+        with col_out:
+            st.markdown("""
+            <div style="
+                background:#ffffff;border:1px solid #e2e8f0;border-radius:14px;
+                padding:20px 22px;box-shadow:0 2px 8px rgba(15,23,42,0.05);
+            ">
+                <div style="font-size:0.75rem;color:#64748b;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:14px;">
+                    Output yang Dihasilkan
+                </div>
+                <div style="display:grid;gap:9px;">
+                    <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px 14px;display:flex;gap:10px;align-items:center;">
+                        <span style="font-size:1.1rem;">🏷️</span>
+                        <div>
+                            <div style="font-weight:700;color:#166534;font-size:0.86rem;">Klasifikasi Gangguan</div>
+                            <div style="color:#64748b;font-size:0.78rem;">Menghasilkan prediksi tingkat keparahan gangguan, yaitu Ringan atau Berat.</div>
+                        </div>
+                    </div>
+                    <div style="background:#fff1f2;border:1px solid #fecdd3;border-radius:10px;padding:10px 14px;display:flex;gap:10px;align-items:center;">
+                        <span style="font-size:1.1rem;">📋</span>
+                        <div>
+                            <div style="font-weight:700;color:#9f1239;font-size:0.86rem;">Evaluasi Performa Model</div>
+                            <div style="color:#64748b;font-size:0.78rem;">Menampilkan hasil evaluasi model menggunakan confusion matrix, akurasi, presisi, recall, F1-score, dan cross validation.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
 
         # =============================
         # FOOTER RINGKASAN
@@ -1347,15 +1326,6 @@ if menu == "📚 Tahapan":
                 <div style="font-weight:700;font-size:1.1rem;margin:8px 0;">Silakan upload file CICO PLN terlebih dahulu melalui panel kiri.</div>
                 <div style="font-size:0.87rem;">Format: <code>.xlsx</code> | Limit 200 MB</div>
             </div>""", unsafe_allow_html=True)
-
-            st.markdown("#### Alur pemrosesan otomatis setelah upload:")
-            df_steps = pd.DataFrame([
-                ("1", "Baca file CICO → ekstrak 6 atribut + nama regu"),
-                ("2", "Tetapkan label dari kode regu (7=Ringan, 8=Berat)"),
-                ("3", "Split data: 80% latih · 20% uji (stratified)"),
-                ("4", "Bangun pohon keputusan ID3 dari data latih"),
-            ], columns=["Langkah", "Proses"])
-            st.dataframe(df_steps, use_container_width=True, hide_index=True)
 
     # =========================================================
     # 🧹 DATA PREPARATION
