@@ -1220,3 +1220,38 @@ def get_evaluation_detail(test_df, train_df, model_tree):
     df_eval["Kelas Majority Fallback"] = fallback_class_list
 
     return df_eval
+
+# ---------------------------------------------------------------------------
+# DETAIL PEMBAGIAN DATA PER FOLD (UNTUK GUI)
+# ---------------------------------------------------------------------------
+def get_cross_validation_data_split_detail(df, n_splits=5):
+    skf = StratifiedKFold(
+        n_splits=n_splits,
+        shuffle=True,
+        random_state=42
+    )
+
+    fitur_X = [
+        "Fasilitas",
+        "Peralatan",
+        "Dampak Kerusakan",
+        "Penyebab",
+        "Kelompok Penyebab",
+        "Cuaca",
+    ]
+
+    target_Y = "Jenis Gangguan"
+
+    X = df[fitur_X]
+    y = df[target_Y]
+
+    detail_df = df.copy().reset_index(drop=True)
+    detail_df.insert(0, "No Data", range(1, len(detail_df) + 1))
+
+    for fold in range(1, n_splits + 1):
+        detail_df[f"Fold {fold}"] = "Latih"
+
+    for fold_num, (train_index, test_index) in enumerate(skf.split(X, y), start=1):
+        detail_df.loc[test_index, f"Fold {fold_num}"] = "Uji"
+
+    return detail_df

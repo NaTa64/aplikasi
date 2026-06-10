@@ -30,6 +30,7 @@ from model_id3 import (
     get_tree_attribute_branch_summary,
     get_cross_validation_fold_tree,
     get_unformed_test_attribute_detail,
+    get_cross_validation_data_split_detail,
     extract_rules_from_tree,
     visualize_tree_dot,
     visualize_tree_svg_bytes
@@ -1451,8 +1452,28 @@ if menu == "📚 Tahapan":
                     "Cuaca",
                 ]
 
+                df_cleaning_tampil = df_no_dup[kolom_tampil].copy()
+
+                search_cleaning = st.text_input(
+                    "Cari data setelah cleaning",
+                    placeholder="Cari No Laporan, nama regu, fasilitas, peralatan, dampak kerusakan, penyebab, atau cuaca...",
+                    key="search_data_setelah_cleaning"
+                )
+
+                if search_cleaning:
+                    mask_cleaning = df_cleaning_tampil.astype(str).apply(
+                        lambda row: row.str.contains(
+                            search_cleaning,
+                            case=False,
+                            na=False
+                        ).any(),
+                        axis=1
+                    )
+
+                    df_cleaning_tampil = df_cleaning_tampil[mask_cleaning]
+
                 st.dataframe(
-                    df_no_dup[kolom_tampil],
+                    df_cleaning_tampil,
                     use_container_width=True,
                     hide_index=True
                 )
@@ -1766,8 +1787,28 @@ if menu == "📚 Tahapan":
                     # =============================
                     st.markdown("### 📄 Dataset Final")
 
+                    df_final_tampil = df_final.copy()
+
+                    search_final = st.text_input(
+                        "Cari data final / data siap modeling",
+                        placeholder="Cari fasilitas, peralatan, dampak kerusakan, penyebab, kelompok penyebab, cuaca, atau jenis gangguan...",
+                        key="search_dataset_final_modeling"
+                    )
+
+                    if search_final:
+                        mask_final = df_final_tampil.astype(str).apply(
+                            lambda row: row.str.contains(
+                                search_final,
+                                case=False,
+                                na=False
+                            ).any(),
+                            axis=1
+                        )
+
+                        df_final_tampil = df_final_tampil[mask_final]
+
                     st.dataframe(
-                        df_final,
+                        df_final_tampil,
                         use_container_width=True,
                         hide_index=True
                     )
@@ -4275,42 +4316,62 @@ if menu == "📚 Tahapan":
                     [kolom for kolom in kolom_eval if kolom in df_eval_tampil.columns]
                 ]
 
+                st.caption(
+                    "Tabel di bawah ini menampilkan hasil klasifikasi data uji berdasarkan data aktual, "
+                    "hasil prediksi model, status prediksi, serta informasi cabang prediksi."
+                )
+
+                search_eval = st.text_input(
+                    "Cari data pada tabel klasifikasi data uji",
+                    placeholder="Cari No Data, fasilitas, dampak kerusakan, aktual, prediksi, status, atau cabang...",
+                    key="search_tabel_klasifikasi_data_uji"
+                )
+
+                df_eval_tampil_filtered = df_eval_tampil.copy()
+
+                if search_eval:
+                    mask_eval = df_eval_tampil_filtered.astype(str).apply(
+                        lambda row: row.str.contains(
+                            search_eval,
+                            case=False,
+                            na=False
+                        ).any(),
+                        axis=1
+                    )
+
+                    df_eval_tampil_filtered = df_eval_tampil_filtered[mask_eval]
+
+                    st.caption(
+                        f"Menampilkan {len(df_eval_tampil_filtered)} dari {len(df_eval_tampil)} data uji."
+                    )
+
                 def highlight_eval(row):
                     style = [""] * len(row)
 
-                    # Warna dasar baris
-                    if row["Cabang Prediksi"] == "Tidak Terbentuk (Majority Fallback)":
+                    cabang_prediksi = row.get("Cabang Prediksi", "")
+                    status_prediksi = row.get("Status Prediksi", "")
+
+                    # Warna kuning: cabang tidak terbentuk / majority fallback
+                    if cabang_prediksi == "Tidak Terbentuk (Majority Fallback)":
                         style = ["background-color:#fef9c3;color:#713f12"] * len(row)
-                    elif row["Status Prediksi"] == "Salah":
+
+                    # Warna merah: prediksi salah
+                    elif status_prediksi == "Salah":
                         style = ["background-color:#fee2e2;color:#991b1b"] * len(row)
+
+                    # Warna hijau: prediksi benar
                     else:
                         style = ["background-color:#f0fdf4;color:#166534"] * len(row)
 
-                    # Khusus kolom Status Prediksi jika salah
-                    if row["Status Prediksi"] == "Salah":
-                        idx_status = row.index.get_loc("Status Prediksi")
-                        style[idx_status] = (
-                            "background-color:#fecaca;"
-                            "color:#991b1b;"
-                            "font-weight:bold;"
-                        )
-
-                        idx_prediksi = row.index.get_loc("Prediksi")
-                        style[idx_prediksi] = (
-                            "background-color:#fecaca;"
-                            "color:#991b1b;"
-                            "font-weight:bold;"
-                        )
-
                     return style
-                    return ["background-color:#f0fdf4;color:#166534"] * len(row)
 
                 st.dataframe(
-                    df_eval_tampil.style.apply(
+                    df_eval_tampil_filtered.style.apply(
                         highlight_eval,
                         axis=1
                     ),
                     use_container_width=True,
+                    height=430,
                     hide_index=True
                 )
 
@@ -4320,24 +4381,25 @@ if menu == "📚 Tahapan":
                     ]
                 )
 
-                jumlah_fallback = len(
+                jumlah_benar = len(
                     df_eval_tampil[
-                        df_eval_tampil["Cabang Prediksi"] == "Tidak Terbentuk (Majority Fallback)"
+                        df_eval_tampil["Status Prediksi"] == "Benar"
                     ]
                 )
 
-                col_a, col_b = st.columns(2)
+                if "Cabang Prediksi" in df_eval_tampil.columns:
+                    jumlah_fallback = len(
+                        df_eval_tampil[
+                            df_eval_tampil["Cabang Prediksi"] == "Tidak Terbentuk (Majority Fallback)"
+                        ]
+                    )
+                else:
+                    jumlah_fallback = 0
 
-                col_a.error(
-                    f"Jumlah prediksi salah: **{jumlah_salah}**"
-                )
-
-                col_b.warning(
-                    f"Jumlah data uji dengan atribut tidak terbentuk: **{jumlah_fallback}**"
-                )
-
-                st.caption(
-                    "Keterangan: baris berwarna kuning menunjukkan data uji yang melewati majority fallback karena terdapat nilai atribut yang tidak terbentuk sebagai cabang pada pohon keputusan."
+                st.info(
+                    f"Dari {len(df_eval_tampil)} data uji, terdapat {jumlah_benar} data dengan prediksi benar "
+                    f"dan {jumlah_salah} data dengan prediksi salah. Data yang menggunakan majority fallback "
+                    f"berjumlah {jumlah_fallback} data."
                 )
 
 
@@ -4744,6 +4806,71 @@ if menu == "📚 Tahapan":
                     plt.tight_layout()
                     st.pyplot(fig)
 
+                df_final_cv = st.session_state.get("df_final")
+
+                if df_final_cv is not None:
+                    cv_split_detail_df = get_cross_validation_data_split_detail(
+                        df_final_cv,
+                        n_splits=5
+                    )
+
+                    st.markdown("#### 🧾 Detail Pembagian Data per Fold")
+
+                    st.caption(
+                        "Tabel di bawah ini merupakan data final setelah tahap data preparation beserta status pembagian data pada setiap fold."
+                    )
+
+                    search_cv_detail = st.text_input(
+                        "Cari data pada tabel pembagian fold",
+                        placeholder="Cari No Data, fasilitas, peralatan, dampak kerusakan, penyebab, atau target...",
+                        key="search_detail_pembagian_fold"
+                    )
+
+                    cv_split_tampil = cv_split_detail_df.copy()
+
+                    if search_cv_detail:
+                        mask_cv_detail = cv_split_tampil.astype(str).apply(
+                            lambda row: row.str.contains(
+                                search_cv_detail,
+                                case=False,
+                                na=False
+                            ).any(),
+                            axis=1
+                        )
+
+                        cv_split_tampil = cv_split_tampil[mask_cv_detail]
+
+                    def highlight_cv_status(val):
+                        if val == "Uji":
+                            return "background-color: #fee2e2; color: #991b1b; font-weight: 700;"
+                        elif val == "Latih":
+                            return "background-color: #dcfce7; color: #166534;"
+                        return ""
+
+                    fold_cols = [f"Fold {i}" for i in range(1, 6)]
+
+                    styled_cv_split = cv_split_tampil.style.map(
+                        highlight_cv_status,
+                        subset=fold_cols
+                    )
+
+                    st.dataframe(
+                        styled_cv_split,
+                        use_container_width=True,
+                        height=430,
+                        hide_index=True
+                    )
+
+                    st.info(
+                        "Cross validation digunakan agar pengujian model lebih adil dan tidak hanya bergantung "
+                        "pada satu pembagian data saja. Pada 5-fold cross validation, semua data mendapat giliran "
+                        "menjadi data uji secara bergantian, sehingga hasil evaluasi model lebih mewakili "
+                        "keseluruhan data."
+                    )
+
+                else:
+                    st.warning("⚠️ Data final belum tersedia. Silakan lakukan Data Preparation terlebih dahulu.")
+                
                 st.markdown("---")
                 
                 st.subheader("📊 Visualisasi K-Fold Cross Validation")
