@@ -27,8 +27,6 @@ from model_id3 import (
     get_information_gain_ranking,
     get_recursive_node_info,
     get_node_status_info,
-    get_tree_attribute_usage,
-    get_tree_branch_value_usage,
     get_tree_attribute_branch_summary,
     get_cross_validation_fold_tree,
     get_unformed_test_attribute_detail,
@@ -47,265 +45,17 @@ st.set_page_config(
 )
 
 # =============================
-# CUSTOM CSS
+# LOAD CUSTOM CSS
 # =============================
-st.markdown("""
-<style>
-    /* ── Force light mode & base background ── */
-    html, body,
-    [data-testid="stAppViewContainer"],
-    [data-testid="stAppViewContainer"] > .main {
-        background-color: #f0f4f8 !important;
-        color: #1a202c !important;
-    }
+def load_css(css_path):
+    with open(css_path, "r", encoding="utf-8") as f:
+        st.markdown(
+            f"<style>{f.read()}</style>",
+            unsafe_allow_html=True
+        )
 
-    /* Hide dark/light toggle & deploy button */
-    # [data-testid="stToolbar"],
-    [data-testid="stDecoration"],
-    #MainMenu,
-    .stDeployButton { 
-        display: none !important; 
-        visibility: hidden !important; 
-    }
-
-    header[data-testid="stHeader"] {
-        background: transparent !important;
-        height: 0 !important;
-    }
-
-    /* ── Main content card ── */
-    .main .block-container {
-        background-color: #ffffff !important;
-        border-radius: 16px;
-        padding: 2rem 2.5rem 3rem 2.5rem !important;
-        margin-top: 1rem;
-        box-shadow: 0 1px 4px rgba(0,0,0,0.06);
-    }
-
-    /* ── SIDEBAR ── */
-    [data-testid="stSidebar"] {
-        background: linear-gradient(160deg, #0f2540 0%, #1a3a5c 60%, #1e4976 100%) !important;
-        border-right: none !important;
-    }
-
-    /* Judul sidebar */
-    [data-testid="stSidebar"] h1,
-    [data-testid="stSidebar"] h2,
-    [data-testid="stSidebar"] h3 {
-        color: #ffffff !important;
-        font-weight: 700 !important;
-    }
-
-    /* Markdown sidebar */
-    [data-testid="stSidebar"] .stMarkdown p,
-    [data-testid="stSidebar"] .stMarkdown span,
-    [data-testid="stSidebar"] .stMarkdown strong {
-        color: #d4e5f7 !important;
-    }
-
-    [data-testid="stSidebar"] .stMarkdown p {
-        font-size: 0.85rem;
-    }
-
-    /* Label widget sidebar */
-    [data-testid="stSidebar"] label,
-    [data-testid="stSidebar"] .stRadio label,
-    [data-testid="stSidebar"] .stSelectbox label {
-        color: #d4e5f7 !important;
-        font-weight: 500;
-    }
-
-    /* Teks pilihan radio sidebar */
-    [data-testid="stSidebar"] [role="radiogroup"] label p {
-        color: #d4e5f7 !important;
-    }
-
-    /* Garis pemisah sidebar */
-    [data-testid="stSidebar"] hr {
-        border-color: rgba(255,255,255,0.15) !important;
-    }
-
-    /* ── Typography ── */
-    h1 { 
-        color: #0f2540 !important; 
-        font-weight: 800 !important; 
-        font-size: 1.9rem !important; 
-    }
-
-    h2 { 
-        color: #1a3a5c !important; 
-        font-weight: 700 !important; 
-    }
-
-    h3 { 
-        color: #1e4976 !important; 
-        font-weight: 600 !important; 
-    }
-
-    /* ── Metric cards ── */
-    [data-testid="metric-container"] {
-        background: #f0f7ff !important;
-        border: 1px solid #bfdbfe !important;
-        border-top: 4px solid #3b82f6 !important;
-        border-radius: 10px !important;
-        padding: 1rem 1.2rem !important;
-    }
-
-    [data-testid="metric-container"] [data-testid="stMetricLabel"] {
-        color: #475569 !important;
-        font-size: 0.82rem !important;
-        font-weight: 600 !important;
-        text-transform: uppercase;
-        letter-spacing: 0.04em;
-    }
-
-    [data-testid="metric-container"] [data-testid="stMetricValue"] {
-        color: #1e40af !important;
-        font-weight: 800 !important;
-        font-size: 1.6rem !important;
-    }
-
-    /* ── Tabs ── */
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 6px;
-        background-color: #f1f5f9 !important;
-        border-radius: 10px;
-        padding: 5px !important;
-        border: 1px solid #e2e8f0;
-    }
-
-    .stTabs [data-baseweb="tab"] {
-        border-radius: 8px !important;
-        color: #64748b !important;
-        font-weight: 500;
-        padding: 6px 16px !important;
-        background: transparent !important;
-        border: none !important;
-    }
-
-    .stTabs [aria-selected="true"] {
-        background-color: #ffffff !important;
-        color: #1e40af !important;
-        font-weight: 700 !important;
-        box-shadow: 0 1px 4px rgba(0,0,0,0.08) !important;
-    }
-
-    .stTabs [data-baseweb="tab-panel"] {
-        padding-top: 1.2rem !important;
-    }
-
-    /* ── Buttons ── */
-    .stButton > button {
-        background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
-        color: #ffffff !important;
-        border: none !important;
-        border-radius: 8px !important;
-        font-weight: 600 !important;
-        padding: 0.5rem 1.5rem !important;
-        transition: all 0.2s;
-        box-shadow: 0 2px 6px rgba(37,99,235,0.35);
-    }
-
-    .stButton > button:hover {
-        background: linear-gradient(135deg, #1d4ed8, #1e40af) !important;
-        box-shadow: 0 4px 12px rgba(37,99,235,0.45);
-        transform: translateY(-1px);
-    }
-
-    /* ── Alerts ── */
-    [data-testid="stAlert"] {
-        border-radius: 10px !important;
-        border-width: 1px !important;
-    }
-
-    /* ── DataFrames ── */
-    .stDataFrame {
-        border-radius: 10px !important;
-        overflow: hidden;
-        border: 1px solid #e2e8f0 !important;
-    }
-
-    [data-testid="stDataFrame"] {
-        background: transparent !important;
-        border: none !important;
-        border-radius: 0 !important;
-    }
-
-    /* ── Expander ── */
-    [data-testid="stExpander"] {
-        border: 1px solid #e2e8f0 !important;
-        border-radius: 10px !important;
-    }
-
-    [data-testid="stExpander"] summary {
-        font-weight: 600;
-        color: #1e3a5f;
-    }
-
-    /* =============================
-    FORCE LIGHT MODE WIDGETS
-    agar widget Streamlit tidak nyaru
-    ============================= */
-
-    /* Selectbox utama */
-    [data-baseweb="select"] > div {
-        background-color: #ffffff !important;
-        color: #0f172a !important;
-        border: 1px solid #cbd5e1 !important;
-        border-radius: 10px !important;
-    }
-
-    [data-baseweb="select"] span {
-        color: #0f172a !important;
-    }
-
-    /* Dropdown selectbox saat dibuka */
-    [data-baseweb="popover"] {
-        background-color: #ffffff !important;
-    }
-
-    [data-baseweb="menu"] {
-        background-color: #ffffff !important;
-        color: #0f172a !important;
-    }
-
-    [data-baseweb="menu"] li {
-        background-color: #ffffff !important;
-        color: #0f172a !important;
-    }
-
-    [data-baseweb="menu"] li:hover {
-        background-color: #eff6ff !important;
-        color: #1e40af !important;
-    }
-
-    /* Text input / search box */
-    .stTextInput input {
-        background-color: #ffffff !important;
-        color: #0f172a !important;
-        border: 1px solid #cbd5e1 !important;
-        border-radius: 10px !important;
-    }
-
-    /* Label input dan selectbox di konten utama */
-    label,
-    .stSelectbox label,
-    .stTextInput label {
-        color: #334155 !important;
-        font-weight: 600 !important;
-    }
-
-    /* Label sidebar tetap terang walaupun ada style global label */
-    [data-testid="stSidebar"] label,
-    [data-testid="stSidebar"] .stSelectbox label,
-    [data-testid="stSidebar"] .stTextInput label,
-    [data-testid="stSidebar"] .stFileUploader label {
-        color: #d4e5f7 !important;
-        font-weight: 600 !important;
-    }
-
-</style>
-""", unsafe_allow_html=True)
+CSS_FILE = Path(__file__).parent / "assets" / "style.css"
+load_css(CSS_FILE)
 
 # =============================
 # MATPLOTLIB STYLE
@@ -554,7 +304,7 @@ def buat_insight_crosstab(ct_table, fitur_crosstab):
 # =============================
 # MENU NAVIGASI
 # =============================
-st.sidebar.markdown("### 🧭 Navigasi Tahapan")
+st.sidebar.markdown("### 🧭 Navigasi")
 
 menu = st.sidebar.radio(
     "Pilih Menu",
@@ -646,7 +396,7 @@ if menu == "📚 Tahapan":
                 line-height: 1.5;
                 margin-bottom: 14px;
             ">
-                Klasifikasi Tingkat Keparahan Gangguan Menggunakan Metode Decision Tree
+                Klasifikasi Tingkat Gangguan Menggunakan Metode Decision Tree
                 Sebagai Dasar Penentuan Tim Petugas Pada PT PLN ULP Samarinda Seberang
             </div>
             <div style="display: flex; flex-wrap: wrap; gap: 10px;">
@@ -721,7 +471,7 @@ if menu == "📚 Tahapan":
                     <div style="background:#ffffff;border:1px solid #fed7aa;border-radius:10px;padding:10px 14px;display:flex;gap:10px;align-items:flex-start;">
                         <span style="font-size:1rem;min-width:22px;">❌</span>
                         <span style="color:#1a202c;font-size:0.88rem;line-height:1.55;">
-                            <strong>Belum berbasis data historis</strong> — proses alokasi belum menggunakan pendekatan klasifikasi berbasis data historis untuk membantu menentukan tingkat keparahan gangguan.
+                            <strong>Belum berbasis data historis</strong> — proses alokasi belum menggunakan pendekatan klasifikasi berbasis data historis untuk membantu menentukan tingkat gangguan.
                         </span>
                     </div>
                 </div>
@@ -781,7 +531,7 @@ if menu == "📚 Tahapan":
                 Kebutuhan Solusi
             </div>
             <div style="color:#1a202c;font-size:0.93rem;line-height:1.75;">
-                Diperlukan suatu sistem berbasis data yang mampu mengklasifikasikan tingkat keparahan gangguan listrik secara <strong>otomatis dan konsisten</strong> berdasarkan atribut yang tercatat pada laporan gangguan. Sistem ini diharapkan dapat menjadi <strong>pendukung keputusan</strong> bagi <em>Command Center</em> dalam proses alokasi tim teknis, sehingga mengurangi ketergantungan pada penilaian manual yang berpotensi tidak konsisten.
+                Diperlukan suatu sistem berbasis data yang mampu mengklasifikasikan tingkat gangguan listrik secara <strong>otomatis dan konsisten</strong> berdasarkan atribut yang tercatat pada laporan gangguan. Sistem ini diharapkan dapat menjadi <strong>pendukung keputusan</strong> bagi <em>Command Center</em> dalam proses alokasi tim teknis, sehingga mengurangi ketergantungan pada penilaian manual yang berpotensi tidak konsisten.
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -968,15 +718,11 @@ if menu == "📚 Tahapan":
             <div style="display:grid;gap:10px;">
                 <div style="display:flex;gap:10px;align-items:flex-start;">
                     <div style="min-width:26px;height:26px;background:#dbeafe;color:#1d4ed8;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:0.78rem;">1</div>
-                    <div style="color:#1a202c;font-size:0.88rem;line-height:1.6;">Membangun model klasifikasi tingkat keparahan gangguan listrik menggunakan Decision Tree dengan algoritma ID3.</div>
+                    <div style="color:#1a202c;font-size:0.88rem;line-height:1.6;">Membangun dan mengevaluasi model klasifikasi tingkat gangguan listrik menggunakan metode Decision Tree dengan algoritma ID3 berdasarkan data historis di PT PLN ULP Samarinda Seberang.</div>
                 </div>
                 <div style="display:flex;gap:10px;align-items:flex-start;">
                     <div style="min-width:26px;height:26px;background:#dbeafe;color:#1d4ed8;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:0.78rem;">2</div>
-                    <div style="color:#1a202c;font-size:0.88rem;line-height:1.6;">Mengevaluasi kinerja model menggunakan confusion matrix, akurasi, presisi, recall, F1-score, dan stratified 5-fold cross validation.</div>
-                </div>
-                <div style="display:flex;gap:10px;align-items:flex-start;">
-                    <div style="min-width:26px;height:26px;background:#dbeafe;color:#1d4ed8;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:0.78rem;">3</div>
-                    <div style="color:#1a202c;font-size:0.88rem;line-height:1.6;">Mengidentifikasi atribut yang paling berpengaruh dalam menentukan tingkat keparahan gangguan berdasarkan nilai information gain.</div>
+                    <div style="color:#1a202c;font-size:0.88rem;line-height:1.6;">Mengidentifikasi atribut yang paling berpengaruh dalam menentukan tingkat gangguan berdasarkan struktur pohon keputusan yang terbentuk.</div>
                 </div>
             </div>
         </div>
@@ -1045,7 +791,7 @@ if menu == "📚 Tahapan":
                         <span style="font-size:1.1rem;">🏷️</span>
                         <div>
                             <div style="font-weight:700;color:#166534;font-size:0.86rem;">Klasifikasi Gangguan</div>
-                            <div style="color:#64748b;font-size:0.78rem;">Menghasilkan prediksi tingkat keparahan gangguan, yaitu Ringan atau Berat.</div>
+                            <div style="color:#64748b;font-size:0.78rem;">Menghasilkan prediksi tingkat gangguan, yaitu Ringan atau Berat.</div>
                         </div>
                     </div>
                     <div style="background:#fff1f2;border:1px solid #fecdd3;border-radius:10px;padding:10px 14px;display:flex;gap:10px;align-items:center;">
@@ -1078,7 +824,7 @@ if menu == "📚 Tahapan":
         #         Untuk memulai analisis, unggah file data CICO PLN (<code>.xlsx</code>) melalui panel kiri, 
         #         lalu ikuti tahapan secara berurutan mulai dari <strong>Data Acquisition</strong> hingga <strong>Evaluation</strong>. 
         #         Setelah model terbentuk, fitur <strong>Klasifikasi Gangguan</strong> pada menu sebelah kiri dapat digunakan 
-        #         untuk melakukan prediksi tingkat keparahan gangguan secara langsung.
+        #         untuk melakukan prediksi tingkat gangguan secara langsung.
         #     </div>
         # </div>
         # """, unsafe_allow_html=True)
@@ -1163,7 +909,7 @@ if menu == "📚 Tahapan":
                         margin-top: 8px;
                         letter-spacing: 0.04em;
                     ">
-                        Kolom Asli
+                        Kolom
                     </div>
                     <div style="
                         font-size: 2rem;
@@ -1174,7 +920,7 @@ if menu == "📚 Tahapan":
                         {jumlah_kolom_asli}
                     </div>
                     <div style="font-size: 0.78rem; color: #94a3b8;">
-                        sebelum seleksi fitur
+                        Jumlah Kolom
                     </div>
                 </div>
 
@@ -2727,6 +2473,8 @@ if menu == "📚 Tahapan":
             jumlah_fitur = len(fitur_X)
             target_prediksi = TARGET_Y
             kelas_target = "Berat / Ringan"
+            root_node = root
+            root_gain_label = f"IG = {root_gain:.3f}"
 
             components.html(f"""
             <div style="
@@ -2788,13 +2536,13 @@ if menu == "📚 Tahapan":
                 ">
                     <div style="font-size: 1.6rem;">🎯</div>
                     <div style="font-size: 0.78rem; color: #64748b; font-weight: 700; text-transform: uppercase; margin-top: 8px;">
-                        Target Prediksi
+                        Target & Kelas
                     </div>
-                    <div style="font-size: 1.25rem; font-weight: 800; color: #7c3aed; margin-top: 8px;">
+                    <div style="font-size: 1.15rem; font-weight: 800; color: #7c3aed; margin-top: 8px; line-height: 1.3;">
                         {target_prediksi}
                     </div>
                     <div style="font-size: 0.78rem; color: #94a3b8;">
-                        variabel target
+                        {kelas_target}
                     </div>
                 </div>
 
@@ -2806,15 +2554,15 @@ if menu == "📚 Tahapan":
                     padding: 18px 16px;
                     box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
                 ">
-                    <div style="font-size: 1.6rem;">🏷️</div>
+                    <div style="font-size: 1.6rem;">🌱</div>
                     <div style="font-size: 0.78rem; color: #64748b; font-weight: 700; text-transform: uppercase; margin-top: 8px;">
-                        Kelas Target
+                        Root Node
                     </div>
-                    <div style="font-size: 1.25rem; font-weight: 800; color: #f97316; margin-top: 8px;">
-                        {kelas_target}
+                    <div style="font-size: 1.15rem; font-weight: 800; color: #f97316; margin-top: 8px; line-height: 1.3;">
+                        {root_node}
                     </div>
                     <div style="font-size: 0.78rem; color: #94a3b8;">
-                        hasil klasifikasi
+                        {root_gain_label}
                     </div>
                 </div>
 
@@ -5036,7 +4784,7 @@ if menu == "📚 Tahapan":
 # =========================================================
 elif menu == "⚙️ Klasifikasi Gangguan":
     st.title("📊 Klasifikasi Gangguan — Decision Tree ID3")
-    st.caption("Masukkan parameter gangguan untuk mendapatkan prediksi tingkat keparahan.")
+    st.caption("Masukkan parameter gangguan untuk mendapatkan hasil klasifikasi gangguan.")
     st.markdown("---")
 
     if "model_tree" in st.session_state and "df_final" in st.session_state:
