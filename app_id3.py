@@ -2,6 +2,7 @@
 
 import streamlit as st
 import pandas as pd
+import re
 import matplotlib.pyplot as plt
 from matplotlib.ticker import FormatStrFormatter, PercentFormatter
 from sklearn.metrics import ConfusionMatrixDisplay
@@ -183,7 +184,7 @@ def insight_box(title, text, color="#2563eb"):
     """, unsafe_allow_html=True)
 
 
-def buat_insight_distribusi(total, n_berat, n_ringan, entropy_root):
+def buat_insight_distribusi(total, n_berat, n_ringan):
     persen_berat = (n_berat / total) * 100 if total else 0
     persen_ringan = (n_ringan / total) * 100 if total else 0
 
@@ -194,15 +195,56 @@ def buat_insight_distribusi(total, n_berat, n_ringan, entropy_root):
     kondisi = "tidak seimbang" if abs(persen_berat - persen_ringan) >= 30 else "cukup seimbang"
 
     return f"""
-    Data latih berjumlah <b>{total}</b> data, terdiri dari <b>{n_berat}</b> kelas Berat
+    Data final berjumlah <b>{total}</b> data, terdiri dari <b>{n_berat}</b> kelas Berat
     ({persen_berat:.2f}%) dan <b>{n_ringan}</b> kelas Ringan ({persen_ringan:.2f}%).
     Kelas yang paling dominan adalah <b>{kelas_dominan}</b> sebanyak <b>{jumlah_dominan}</b> data
-    ({persen_dominan:.2f}%). Kondisi ini menunjukkan bahwa distribusi kelas pada data latih
-    <b>{kondisi}</b>. Nilai entropy sebesar <b>{entropy_root:.3f}</b> menunjukkan bahwa data latih
-    masih memiliki keragaman kelas, sehingga perlu dilakukan pemisahan atribut menggunakan
-    information gain.
+    ({persen_dominan:.2f}%). Kondisi ini menunjukkan bahwa distribusi kelas pada data final
+    <b>{kondisi}</b>. Ketidakseimbangan ini perlu diperhatikan karena model dapat lebih mudah
+    mengenali kelas yang jumlah datanya lebih banyak, sehingga dapat memengaruhi hasil evaluasi model.
     """
 
+def buat_insight_distribusi_umum(distribusi_umum, fitur_distribusi):
+    df_tmp = distribusi_umum.copy()
+
+    if df_tmp.empty:
+        return (
+            f"Tabel distribusi untuk atribut <b>{fitur_distribusi}</b> belum memiliki data "
+            f"yang dapat ditampilkan."
+        )
+
+    if df_tmp["Persentase"].dtype == object:
+        df_tmp["Persentase"] = (
+            df_tmp["Persentase"]
+            .astype(str)
+            .str.replace("%", "", regex=False)
+            .astype(float)
+        )
+
+    top = df_tmp.sort_values("Jumlah", ascending=False).iloc[0]
+
+    nilai_terbanyak = top["Nilai Atribut"]
+    jumlah_terbanyak = int(top["Jumlah"])
+    persen_terbanyak = float(top["Persentase"])
+
+    if persen_terbanyak >= 50:
+        kalimat_awal = (
+            f"Lebih dari separuh total laporan (<b>{persen_terbanyak:.2f}%</b> atau "
+            f"<b>{jumlah_terbanyak}</b> data) tercatat pada nilai <b>{nilai_terbanyak}</b> "
+            f"untuk atribut <b>{fitur_distribusi}</b>."
+        )
+    else:
+        kalimat_awal = (
+            f"Sebanyak <b>{persen_terbanyak:.2f}%</b> atau <b>{jumlah_terbanyak}</b> data "
+            f"tercatat pada nilai <b>{nilai_terbanyak}</b> untuk atribut "
+            f"<b>{fitur_distribusi}</b>."
+        )
+
+    return (
+        f"{kalimat_awal} "
+        f"Jumlah ini menunjukkan bahwa nilai <b>{nilai_terbanyak}</b> cukup banyak muncul "
+        f"pada data gangguan. Karena jumlahnya dominan, nilai bisa berpengaruh "
+        f"saat data digunakan untuk menentukan gangguan Ringan atau Berat."
+    )
 
 def buat_insight_gain(df_gains):
     top = df_gains.iloc[0]
@@ -268,39 +310,350 @@ def buat_insight_detail_atribut(df_det, attr_sel, ig_s):
     keragaman kelas setelah data dipisahkan berdasarkan nilai atributnya.
     """
 
-
 def buat_insight_crosstab(ct_table, fitur_crosstab):
     df_tmp = ct_table.copy()
+
+    if df_tmp.empty or len(df_tmp.columns) == 0:
+        return (
+            f"Tabel crosstab untuk fitur <b>{fitur_crosstab}</b> belum memiliki data "
+            f"yang dapat ditampilkan."
+        )
+
+    if "Nilai Atribut" not in df_tmp.columns:
+        df_tmp = df_tmp.rename(columns={df_tmp.columns[0]: "Nilai Atribut"})
 
     if "Berat" not in df_tmp.columns:
         df_tmp["Berat"] = 0
     if "Ringan" not in df_tmp.columns:
         df_tmp["Ringan"] = 0
 
-    df_tmp["Dominan"] = df_tmp.apply(
-        lambda r: "Berat" if r["Berat"] > r["Ringan"]
-        else ("Ringan" if r["Ringan"] > r["Berat"] else "Seimbang"),
-        axis=1
-    )
+    df_tmp["Berat"] = df_tmp["Berat"].fillna(0).astype(int)
+    df_tmp["Ringan"] = df_tmp["Ringan"].fillna(0).astype(int)
+    df_tmp["Total Data"] = df_tmp["Berat"] + df_tmp["Ringan"]
 
-    top_rows = df_tmp.sort_values("Total Data", ascending=False).head(3)
+    df_campur = df_tmp[
+        (df_tmp["Berat"] > 0) &
+        (df_tmp["Ringan"] > 0)
+    ].copy()
 
-    ringkasan = []
-    for _, r in top_rows.iterrows():
-        ringkasan.append(
-            f"<b>{r['Nilai Atribut']}</b> dominan {r['Dominan']} "
-            f"({r['Berat']} Berat, {r['Ringan']} Ringan)"
+    df_campur = df_campur.sort_values("Total Data", ascending=False).head(3)
+
+    def gabung_daftar(daftar, penghubung="dan"):
+        if len(daftar) == 1:
+            return daftar[0]
+        elif len(daftar) == 2:
+            return f"{daftar[0]} {penghubung} {daftar[1]}"
+        else:
+            return f"{', '.join(daftar[:-1])}, {penghubung} {daftar[-1]}"
+
+    if not df_campur.empty:
+        daftar_campur = []
+
+        for _, r in df_campur.iterrows():
+            nilai = r["Nilai Atribut"]
+            berat = int(r["Berat"])
+            ringan = int(r["Ringan"])
+
+            daftar_campur.append(
+                f"<b>{nilai}</b> (<b>{berat}</b> Berat, <b>{ringan}</b> Ringan)"
+            )
+
+        if len(daftar_campur) == 1:
+            kalimat_nilai = f"nilai {gabung_daftar(daftar_campur)}"
+        else:
+            kalimat_nilai = f"beberapa nilai seperti {gabung_daftar(daftar_campur)}"
+
+        return (
+            f"Pada fitur <b>{fitur_crosstab}</b>, {kalimat_nilai} masih muncul "
+            f"pada target Berat dan Ringan. Hal ini menunjukkan bahwa kondisi tersebut "
+            f"pernah muncul pada dua jenis penanganan, sehingga nilai fitur ini belum cukup kuat "
+            f"untuk langsung menentukan gangguan Berat atau Ringan. Oleh karena itu, fitur "
+            f"<b>{fitur_crosstab}</b> tetap perlu dibaca bersama fitur lain agar hasil klasifikasi "
+            f"gangguan lebih tepat."
         )
 
-    return f"""
-    Tabel hubungan fitur dan target ini menunjukkan hubungan antara nilai atribut <b>{fitur_crosstab}</b>
-    dengan kelas <b>Berat</b> dan <b>Ringan</b>. Berdasarkan jumlah data terbesar, beberapa nilai atribut
-    yang paling banyak muncul yaitu {', '.join(ringkasan)}.
+    return (
+        f"Pada fitur <b>{fitur_crosstab}</b>, tidak ada nilai yang muncul pada dua target. "
+        f"Artinya, fitur ini sudah dapat membedakan gangguan Berat dan Ringan pada data "
+        f"yang ditampilkan."
+    )
 
-    Dari tabel ini dapat dilihat nilai atribut mana yang lebih sering berkaitan dengan kelas Berat
-    atau Ringan. Informasi ini digunakan sebagai gambaran awal sebelum model ID3 membentuk
-    aturan keputusan berdasarkan perhitungan entropy dan information gain.
-    """
+def ambil_kode_awal_regu(nama_regu):
+    if pd.isna(nama_regu):
+        return None
+
+    teks = str(nama_regu).strip()
+    angka = "".join(filter(str.isdigit, teks))
+
+    if not angka:
+        return None
+
+    kode = angka[0]
+
+    if kode in ["7", "8"]:
+        return kode
+
+    return None
+
+
+def ambil_nilai_terbanyak_dan_persen(series, total):
+    data = series.dropna().astype(str).str.strip()
+
+    if data.empty or total == 0:
+        return "-", 0
+
+    hitung = data.value_counts()
+    nilai = hitung.index[0]
+    jumlah = int(hitung.iloc[0])
+    persen = (jumlah / total) * 100
+
+    teks = f"{nilai} ({jumlah} data)"
+
+    return teks, persen
+
+
+def buat_ringkasan_atribut_nama_regu(df_regu, fitur_X):
+    df_tmp = df_regu.copy()
+
+    df_tmp = df_tmp.dropna(subset=["Nama Regu"])
+    df_tmp["Nama Regu"] = df_tmp["Nama Regu"].astype(str).str.strip()
+
+    df_tmp["Kode Regu"] = df_tmp["Nama Regu"].apply(ambil_kode_awal_regu)
+    df_tmp = df_tmp[df_tmp["Kode Regu"].isin(["7", "8"])]
+
+    df_tmp["Gangguan"] = df_tmp["Kode Regu"].map({
+        "7": "Ringan",
+        "8": "Berat"
+    })
+
+    hasil_tabel = []
+    hasil_heatmap = []
+
+    # Di sini grouping hanya berdasarkan Nama Regu
+    for nama_regu, group in df_tmp.groupby("Nama Regu"):
+        total_data = len(group)
+
+        kode_regu = group["Kode Regu"].mode().iloc[0]
+        gangguan = group["Gangguan"].mode().iloc[0]
+
+        row_tabel = {
+            "Kode Regu": kode_regu,
+            "Nama Regu": nama_regu,
+            "Gangguan": gangguan,
+            "Jumlah Data": total_data
+        }
+
+        row_heatmap = {
+            "Nama Regu": nama_regu,
+            "Kode Regu": kode_regu,
+            "Gangguan": gangguan,
+            "Jumlah Data": total_data
+        }
+
+        for fitur in fitur_X:
+            teks_nilai, persen = ambil_nilai_terbanyak_dan_persen(
+                group[fitur],
+                total_data
+            )
+
+            row_tabel[f"{fitur} Terbanyak"] = teks_nilai
+            row_heatmap[fitur] = persen
+
+        hasil_tabel.append(row_tabel)
+        hasil_heatmap.append(row_heatmap)
+
+    df_tabel = pd.DataFrame(hasil_tabel)
+    df_heatmap = pd.DataFrame(hasil_heatmap)
+
+    if not df_tabel.empty:
+        df_tabel["Urutan Kode"] = df_tabel["Kode Regu"].map({
+            "7": 1,
+            "8": 2
+        })
+
+        df_tabel = df_tabel.sort_values(
+            ["Urutan Kode", "Jumlah Data"],
+            ascending=[True, False]
+        )
+
+        df_tabel = df_tabel.drop(columns=["Urutan Kode"])
+
+    if not df_heatmap.empty:
+        df_heatmap["Urutan Kode"] = df_heatmap["Kode Regu"].map({
+            "7": 1,
+            "8": 2
+        })
+
+        df_heatmap = df_heatmap.sort_values(
+            ["Urutan Kode", "Jumlah Data"],
+            ascending=[True, False]
+        )
+
+        df_heatmap = df_heatmap.drop(columns=["Urutan Kode"])
+
+    return df_tabel, df_heatmap
+
+def buat_insight_heatmap_regu(df_ringkasan_regu, df_heatmap_regu, fitur_X):
+
+    if df_heatmap_regu is None or df_heatmap_regu.empty:
+        return "Heatmap belum memiliki data yang dapat dijelaskan."
+
+    if df_ringkasan_regu is None or df_ringkasan_regu.empty:
+        return "Tabel ringkasan belum memiliki data yang dapat dijelaskan."
+
+    kolom_regu_heatmap = "Nama Regu" if "Nama Regu" in df_heatmap_regu.columns else "Regu"
+    kolom_regu_tabel = "Nama Regu" if "Nama Regu" in df_ringkasan_regu.columns else "Regu"
+
+    if kolom_regu_heatmap not in df_heatmap_regu.columns:
+        return "Heatmap belum memiliki kolom regu yang dapat dijelaskan."
+
+    if kolom_regu_tabel not in df_ringkasan_regu.columns:
+        return "Tabel ringkasan belum memiliki kolom regu yang dapat dijelaskan."
+
+    kolom_heatmap = [
+        fitur for fitur in fitur_X
+        if fitur in df_heatmap_regu.columns
+    ]
+
+    if not kolom_heatmap:
+        return "Heatmap belum memiliki atribut yang dapat dijelaskan."
+
+    df_persen = df_heatmap_regu.set_index(kolom_regu_heatmap)[kolom_heatmap].copy()
+    df_persen = df_persen.apply(pd.to_numeric, errors="coerce")
+
+    df_stack = df_persen.stack().reset_index()
+    df_stack.columns = ["Regu", "Atribut", "Persentase"]
+    df_stack = df_stack.dropna(subset=["Persentase"])
+
+    if df_stack.empty:
+        return "Heatmap belum memiliki nilai persentase yang dapat dijelaskan."
+
+    if "Jumlah Data" in df_heatmap_regu.columns:
+        df_total = df_heatmap_regu[[kolom_regu_heatmap, "Jumlah Data"]].copy()
+        df_total = df_total.rename(columns={kolom_regu_heatmap: "Regu"})
+        df_stack = df_stack.merge(df_total, on="Regu", how="left")
+    else:
+        df_stack["Jumlah Data"] = 0
+
+    def ambil_detail_nilai(regu, atribut):
+        kolom = f"{atribut} Terbanyak"
+
+        if kolom not in df_ringkasan_regu.columns:
+            return "nilai terbanyak", None, None
+
+        row = df_ringkasan_regu[df_ringkasan_regu[kolom_regu_tabel] == regu]
+
+        if row.empty:
+            return "nilai terbanyak", None, None
+
+        teks = str(row.iloc[0][kolom])
+
+        try:
+            total_data = int(row.iloc[0]["Jumlah Data"])
+        except:
+            total_data = None
+
+        match = re.search(r"^(.*?)\s*\((\d+)\s*data", teks)
+
+        if match:
+            nilai = match.group(1)
+            jumlah = int(match.group(2))
+        else:
+            nilai = teks
+            jumlah = None
+
+        return nilai, jumlah, total_data
+
+    def format_detail(nilai, jumlah, total, persen):
+        if jumlah is not None and total is not None:
+            return (
+                f"<b>{nilai}</b> sebanyak <b>{jumlah}</b> dari <b>{total}</b> data "
+                f"atau sekitar <b>{persen:.0f}%</b>"
+            )
+
+        if jumlah is not None:
+            return (
+                f"<b>{nilai}</b> sebanyak <b>{jumlah}</b> data "
+                f"atau sekitar <b>{persen:.0f}%</b>"
+            )
+
+        return f"<b>{nilai}</b> dengan persentase sekitar <b>{persen:.0f}%</b>"
+
+    data_contoh_1 = None
+    data_contoh_2 = None
+
+    df_100 = df_stack[df_stack["Persentase"] >= 99.5].copy()
+    df_100 = df_100.sort_values(
+        ["Jumlah Data", "Persentase"],
+        ascending=[False, False]
+    )
+
+    for _, row_100 in df_100.iterrows():
+        regu = row_100["Regu"]
+
+        df_satu_regu = df_stack[
+            (df_stack["Regu"] == regu) &
+            (df_stack["Persentase"] < 99.5)
+        ].copy()
+
+        if not df_satu_regu.empty:
+            data_contoh_1 = row_100
+            data_contoh_2 = df_satu_regu.sort_values("Persentase").iloc[0]
+            break
+
+    if data_contoh_1 is None:
+        for regu, group in df_stack.groupby("Regu"):
+            if len(group) >= 2:
+                group_sorted = group.sort_values("Persentase", ascending=False)
+                data_contoh_1 = group_sorted.iloc[0]
+                data_contoh_2 = group_sorted.iloc[-1]
+                break
+
+    if data_contoh_1 is None:
+        data_contoh_1 = df_stack.sort_values("Persentase", ascending=False).iloc[0]
+
+    nilai_1, jumlah_1, total_1 = ambil_detail_nilai(
+        data_contoh_1["Regu"],
+        data_contoh_1["Atribut"]
+    )
+
+    detail_1 = format_detail(
+        nilai_1,
+        jumlah_1,
+        total_1,
+        data_contoh_1["Persentase"]
+    )
+
+    kalimat_contoh = (
+        f"Contohnya pada regu <b>{data_contoh_1['Regu']}</b>, atribut "
+        f"<b>{data_contoh_1['Atribut']}</b> memiliki nilai atribut terbanyak {detail_1}. "
+    )
+
+    if data_contoh_2 is not None:
+        nilai_2, jumlah_2, total_2 = ambil_detail_nilai(
+            data_contoh_2["Regu"],
+            data_contoh_2["Atribut"]
+        )
+
+        detail_2 = format_detail(
+            nilai_2,
+            jumlah_2,
+            total_2,
+            data_contoh_2["Persentase"]
+        )
+
+        kalimat_contoh += (
+            f"Pada regu yang sama, atribut <b>{data_contoh_2['Atribut']}</b> "
+            f"memiliki nilai terbanyak {detail_2}. "
+        )
+
+    return (
+    "Heatmap di atas menunjukkan persentase nilai terbanyak dari enam atribut pada setiap regu. "
+    f"{kalimat_contoh}"
+    "Artinya, warna pekat berarti nilai tersebut sering muncul, sedangkan warna terang berarti nilai atributnya "
+    "tidak menumpuk pada satu nilai saja."
+)
+
 
 # =============================
 # MENU NAVIGASI
@@ -741,15 +1094,15 @@ if menu == "📚 Tahapan":
         with col_steps:
             steps_data = [
                 ("1", "#2563eb", "Data Acquisition",
-                 "Mengumpulkan data historis laporan gangguan (CICO) dari PT PLN ULP Samarinda Seberang."),
+                "Mengumpulkan data historis laporan gangguan (CICO) dari PT PLN ULP Samarinda Seberang."),
                 ("2", "#7c3aed", "Data Preparation",
-                 "Cleaning data, pelabelan variabel target, seleksi fitur, normalisasi, dan stratified split 80:20."),
+                "Cleaning data, pelabelan variabel target, seleksi fitur, case folding, dan stratified split 80:20."),
                 ("3", "#0891b2", "Exploratory Data Analysis",
-                 "Analisis distribusi data, perhitungan entropy, dan ranking information gain tiap atribut."),
+                "Mengeksplorasi distribusi target, distribusi atribut, hubungan fitur dengan target, dan ringkasan atribut berdasarkan regu sebagai pemahaman awal sebelum tahap modeling."),
                 ("4", "#16a34a", "Modeling (ID3)",
-                 "Pembentukan pohon keputusan menggunakan algoritma ID3 berbasis entropy dan information gain."),
+                "Pembentukan pohon keputusan menggunakan algoritma ID3 berbasis entropy dan information gain."),
                 ("5", "#dc2626", "Evaluation",
-                 "Pengujian model dengan confusion matrix, akurasi, presisi, recall, F1-score, dan 5-fold cross validation."),
+                "Pengujian model dengan confusion matrix, akurasi, presisi, recall, F1-score, dan 5-fold cross validation."),
             ]
 
             # Bangun HTML lengkap dalam satu variabel Python,
@@ -1101,7 +1454,16 @@ if menu == "📚 Tahapan":
             st.session_state.train_df = train_df
             st.session_state.test_df = test_df
             st.session_state.df_final = df_final
-            
+
+            kolom_eda_regu = ["Nama Regu"] + FITUR_X + [TARGET_Y]
+
+            kolom_eda_regu = [
+                kolom for kolom in kolom_eda_regu
+                if kolom in df_clean_pre.columns
+            ]
+
+            st.session_state.df_eda_regu = df_clean_pre[kolom_eda_regu].copy()
+
             # =============================
             # EXPORT HASIL SPLITTING KE EXCEL
             # =============================
@@ -1407,7 +1769,7 @@ if menu == "📚 Tahapan":
                     st.success(
                         """
                         Tidak ditemukan missing value pada data setelah proses penghapusan duplikat.
-                        Data dapat dilanjutkan ke tahap pelabelan, seleksi fitur, dan normalisasi.
+                        Data dapat dilanjutkan ke tahap pelabelan, seleksi fitur, dan case folding.
                         """
                     )
 
@@ -1431,7 +1793,7 @@ if menu == "📚 Tahapan":
                         Missing value masih ditemukan pada kolom yang digunakan untuk modeling,
                         yaitu: **{", ".join(kolom_missing_model)}**.
 
-                        Data pada kolom tersebut perlu diperiksa kembali karena dapat mempengaruhi
+                        Data pada kolom tersebut perlu diperiksa kembali karena dapat memengaruhi
                         proses pembentukan model Decision Tree ID3.
                         """
                     )
@@ -1605,7 +1967,7 @@ if menu == "📚 Tahapan":
 
                 tab5a, tab5b, tab5c = st.tabs([
                     "📄 Seleksi Fitur",
-                    "🔡 Normalisasi",
+                    "🔡 Case Folding",
                     "✅ Data Siap Modeling"
                 ])
                 
@@ -1687,12 +2049,12 @@ if menu == "📚 Tahapan":
                     st.dataframe(df_model_sel, use_container_width=True, hide_index=True)
                     
                 with tab5b:
-                    st.markdown("**Normalisasi (Lowercase) — semua nilai teks diubah ke huruf kecil:**")
+                    st.markdown("**Case Folding — semua nilai teks diubah ke huruf kecil:**")
                     
                     st.info(
                         """
-                        Normalisasi dilakukan dengan mengubah seluruh teks
-                        menjadi huruf kecil (lowercase)
+                        Case Folding dilakukan dengan mengubah seluruh teks
+                        menjadi huruf kecil
                         untuk menjaga konsistensi data kategorikal
                         dan menghindari perbedaan penulisan data,
                         seperti penggunaan huruf besar dan kecil.
@@ -1700,10 +2062,10 @@ if menu == "📚 Tahapan":
                     )
                     
                     df_norm = df_final.copy()
-                    st.markdown("### 🔄 Contoh Perubahan Normalisasi")
+                    st.markdown("### 🔄 Contoh Perubahan Case Folding")
 
                     # =============================
-                    # CONTOH NORMALISASI
+                    # CONTOH Case Folding
                     # =============================
                     df_before_after = pd.DataFrame({
                         "Sebelum": ["Padam", "GARDU", "PETIR"],
@@ -1717,9 +2079,9 @@ if menu == "📚 Tahapan":
                     )
                     
                     # =============================
-                    # HASIL NORMALISASI
+                    # HASIL Case Folding
                     # =============================
-                    st.markdown("### 📄 Data Setelah Normalisasi")
+                    st.markdown("### 📄 Data Setelah Case Folding")
                     st.dataframe(df_norm, use_container_width=True)
                     
                 with tab5c:
@@ -1730,7 +2092,7 @@ if menu == "📚 Tahapan":
                         yang telah melalui proses cleaning,
                         pelabelan,
                         seleksi fitur,
-                        dan normalisasi.
+                        dan case folding.
 
                         Dataset tersebut selanjutnya digunakan
                         pada proses pembentukan model Decision Tree ID3.
@@ -2106,143 +2468,25 @@ if menu == "📚 Tahapan":
     # =========================================================
     elif tahap == "3. Exploratory Data Analysis":
         st.title("🔍 Tahap 3 — Exploratory Data Analysis")
-        st.caption("Menganalisis distribusi data, entropy, dan information gain setiap atribut")
+        st.caption(
+            "Mengeksplorasi distribusi target, distribusi atribut, hubungan fitur dengan target, "
+            "dan ringkasan atribut berdasarkan regu sebagai pemahaman awal karakteristik data."
+        )
         st.markdown("---")
 
         if "df_final" in st.session_state:
-            import numpy as np
             df = st.session_state.df_final.copy()
-            train_df = st.session_state.train_df
             fitur_X = FITUR_X.copy()
             target_Y = TARGET_Y
-            total = len(train_df)
-            n_berat = len(train_df[train_df[target_Y] == "Berat"])
-            n_ringan = len(train_df[train_df[target_Y] == "Ringan"])
-            entropy_root = calculate_entropy(train_df[target_Y])
 
-            df_gains = get_information_gain_ranking(
-                train_df,
-                fitur_X,
-                target_Y
-            )
+            total = len(df)
+            n_berat = len(df[df[target_Y] == "Berat"])
+            n_ringan = len(df[df[target_Y] == "Ringan"])
 
-            df_gains.index += 1
-
-            best_attr = df_gains.iloc[0]["Atribut"]
-
-            best_ig = df_gains.iloc[0]["Information Gain"]
-
-            # Entropy Root section
-            st.subheader("🧮 Entropy Node Root (Data Latih)")
-            
             # =============================
-            # DASHBOARD CARD ENTROPY ROOT EDA
+            # 📊 Distribusi Kelas Target (Data Final)
             # =============================
-            persen_berat = (n_berat / total) * 100
-            persen_ringan = (n_ringan / total) * 100
-
-            components.html(f"""
-            <div style="
-                font-family: Arial, sans-serif;
-                display: grid;
-                grid-template-columns: repeat(4, 1fr);
-                gap: 14px;
-                width: 100%;
-                margin: 8px 0 18px 0;
-            ">
-
-                <div style="
-                    background: #ffffff;
-                    border: 1px solid #e2e8f0;
-                    border-top: 5px solid #2563eb;
-                    border-radius: 14px;
-                    padding: 18px 16px;
-                    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
-                ">
-                    <div style="font-size: 1.7rem;">📘</div>
-                    <div style="font-size: 0.76rem; color: #64748b; font-weight: 800; text-transform: uppercase; margin-top: 8px;">
-                        Total Data Latih
-                    </div>
-                    <div style="font-size: 2rem; font-weight: 900; color: #2563eb; margin-top: 4px;">
-                        {total}
-                    </div>
-                    <div style="font-size: 0.78rem; color: #94a3b8;">
-                        data untuk pembentukan model
-                    </div>
-                </div>
-
-                <div style="
-                    background: #ffffff;
-                    border: 1px solid #e2e8f0;
-                    border-top: 5px solid #dc2626;
-                    border-radius: 14px;
-                    padding: 18px 16px;
-                    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
-                ">
-                    <div style="font-size: 1.7rem;">🚨</div>
-                    <div style="font-size: 0.76rem; color: #64748b; font-weight: 800; text-transform: uppercase; margin-top: 8px;">
-                        Kelas Berat
-                    </div>
-                    <div style="font-size: 2rem; font-weight: 900; color: #dc2626; margin-top: 4px;">
-                        {n_berat}
-                    </div>
-                    <div style="font-size: 0.78rem; color: #94a3b8;">
-                        {persen_berat:.2f}% dari data latih
-                    </div>
-                </div>
-
-                <div style="
-                    background: #ffffff;
-                    border: 1px solid #e2e8f0;
-                    border-top: 5px solid #16a34a;
-                    border-radius: 14px;
-                    padding: 18px 16px;
-                    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
-                ">
-                    <div style="font-size: 1.7rem;">✅</div>
-                    <div style="font-size: 0.76rem; color: #64748b; font-weight: 800; text-transform: uppercase; margin-top: 8px;">
-                        Kelas Ringan
-                    </div>
-                    <div style="font-size: 2rem; font-weight: 900; color: #16a34a; margin-top: 4px;">
-                        {n_ringan}
-                    </div>
-                    <div style="font-size: 0.78rem; color: #94a3b8;">
-                        {persen_ringan:.2f}% dari data latih
-                    </div>
-                </div>
-
-                <div style="
-                    background: #ffffff;
-                    border: 1px solid #e2e8f0;
-                    border-top: 5px solid #7c3aed;
-                    border-radius: 14px;
-                    padding: 18px 16px;
-                    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
-                ">
-                    <div style="font-size: 1.7rem;">🧮</div>
-                    <div style="font-size: 0.76rem; color: #64748b; font-weight: 800; text-transform: uppercase; margin-top: 8px;">
-                        Entropy Root
-                    </div>
-                    <div style="font-size: 2rem; font-weight: 900; color: #7c3aed; margin-top: 4px;">
-                        {entropy_root:.3f}
-                    </div>
-                    <div style="font-size: 0.78rem; color: #94a3b8;">
-                        ketidakpastian data awal
-                    </div>
-                </div>
-
-            </div>
-            """, height=180, scrolling=False)
-            
-            st.markdown(f"""
-            <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;
-                        padding:10px 16px;font-size:0.9rem;margin-bottom:1rem;">
-                <b>Rumus Entropy:</b><br>
-                Entropy(S) = −({n_berat}/{total})×log₂({n_berat}/{total}) − ({n_ringan}/{total})×log₂({n_ringan}/{total})
-                = <b>{entropy_root:.3f}</b>
-            </div>""", unsafe_allow_html=True)
-
-            st.markdown("### 📊 Distribusi Kelas Target (Data Latih)")
+            st.markdown("### 📊 Distribusi Kelas Target (Data Final)")
             col_tbl_dist, col_chart_dist = st.columns([1,1])
 
             with col_tbl_dist:
@@ -2272,7 +2516,7 @@ if menu == "📚 Tahapan":
                 
                 insight_box(
                     "Penjelasan Distribusi Kelas Target",
-                    buat_insight_distribusi(total, n_berat, n_ringan, entropy_root),
+                    buat_insight_distribusi(total, n_berat, n_ringan),
                     color="#7c3aed"
                 )
 
@@ -2292,127 +2536,88 @@ if menu == "📚 Tahapan":
                 )
 
                 ax.set_title(
-                    "Distribusi Target Data Latih",
+                    "Distribusi Target Data Final",
                     fontweight="bold"
                 )
 
                 ax.axis("off")
 
                 st.pyplot(fig)
-            
-            st.markdown("---")
-            st.subheader("📊 Information Gain Semua Atribut")
 
-            col_tbl, col_chart = st.columns([1, 1])
-            with col_tbl:
-                # st.markdown("""
-                # <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:14px 20px;margin-bottom:16px;">
-                #     <b>Rumus Information Gain:</b><br>
-                #     Gain(S, A) = Entropy(S) − Σ ((Jumlah data cabang / Total data) × Entropy cabang)
-                # </div>
-                # """, unsafe_allow_html=True)
-                
-                df_gains_disp = df_gains.copy()
-                df_gains_disp.insert(0, "Rank", range(1, len(df_gains_disp)+1))
-                df_gains_disp["Information Gain"] = df_gains_disp["Information Gain"].apply(
-                    lambda x: f"{x:.3f}"
-                )
-                
-                st.dataframe(df_gains_disp, use_container_width=True, hide_index=True)
-                st.success(f"✅ Root node: **{best_attr}** (Information Gain = {best_ig:.3f})")
-
-            with col_chart:
-                fig, ax = plt.subplots(figsize=(5.5, 4))
-                sorted_df = df_gains.sort_values("Information Gain", ascending=True)
-                bars = ax.barh(sorted_df["Atribut"], sorted_df["Information Gain"],
-                               color=CHART_COLORS[:len(sorted_df)], edgecolor="white")
-                ax.bar_label(bars, fmt="%.3f", fontsize=9, padding=3)
-                
-                ax.set_xlabel("Information Gain")
-                ax.set_title("Perbandingan Information Gain Tiap Atribut", fontweight="bold")
-                ax.xaxis.set_major_formatter(FormatStrFormatter("%.3f"))
-                
-                plt.tight_layout()
-                st.pyplot(fig)
-
-            insight_box(
-                    "Penjelasan Information Gain",
-                    buat_insight_gain(df_gains),
-                    color="#16a34a"
-                )
-            st.markdown("---")
-            st.subheader("🔎 Detail Perhitungan per Atribut")
-            attr_sel = st.selectbox("Pilih atribut:", fitur_X, key="eda_attr")
-            
-            hasil_ig = get_information_gain_detail(
-                train_df,
-                attr_sel,
-                target_Y
+            # =============================
+            # DISTRIBUSI UMUM SETIAP ATRIBUT
+            # =============================
+            st.subheader("📌 Distribusi Umum Setiap Atribut")
+            st.caption(
+                "Bagian ini digunakan untuk melihat sebaran nilai pada setiap atribut "
+                "tanpa mengaitkannya terlebih dahulu dengan target Ringan atau Berat."
             )
 
-            df_det = hasil_ig["detail_df"]
-            ig_s = hasil_ig["information_gain"]
-            entropy_root = hasil_ig["entropy_root"]
+            fitur_distribusi = st.selectbox(
+                "Pilih atribut untuk melihat distribusi umum",
+                fitur_X,
+                key="eda_distribusi_umum"
+            )
 
-            col_tbl2, col_chart2 = st.columns([1, 1])
-            
-            with col_tbl2:
-                # =============================
-                # FORMAT TABEL DETAIL PERHITUNGAN
-                # =============================
-                df_det_tampil = df_det.copy()
+            distribusi_umum = (
+                df[fitur_distribusi]
+                .value_counts()
+                .reset_index()
+            )
 
-                df_det_tampil = df_det_tampil.rename(columns={
-                    "Proporsi": "Proporsi Nilai Atribut"
-                })
+            distribusi_umum.columns = ["Nilai Atribut", "Jumlah"]
+            distribusi_umum["Persentase"] = (
+                distribusi_umum["Jumlah"] / distribusi_umum["Jumlah"].sum() * 100
+            )
 
-                if "Proporsi Nilai Atribut" in df_det_tampil.columns:
-                    df_det_tampil["Proporsi Nilai Atribut"] = df_det_tampil["Proporsi Nilai Atribut"].apply(
-                        lambda x: f"{x:.3f} ({x * 100:.2f}%)"
-                    )
+            distribusi_tampil = distribusi_umum.copy()
+            distribusi_tampil["Persentase"] = distribusi_tampil["Persentase"].apply(
+                lambda x: f"{x:.2f}%"
+            )
 
-                if "Entropy" in df_det_tampil.columns:
-                    df_det_tampil["Entropy"] = df_det_tampil["Entropy"].apply(
-                        lambda x: f"{x:.3f}"
-                    )
-                
+            nilai_terbanyak = distribusi_umum.iloc[0]["Nilai Atribut"]
+            jumlah_terbanyak = distribusi_umum.iloc[0]["Jumlah"]
+            persen_terbanyak = distribusi_umum.iloc[0]["Persentase"]
+
+            col_umum_tbl, col_umum_chart = st.columns([1, 1])
+
+            with col_umum_tbl:
                 st.dataframe(
-                    df_det_tampil,
+                    distribusi_tampil,
                     use_container_width=True,
                     hide_index=True
                 )
-                st.success(
-                    f"""
-                    Information Gain atribut **{attr_sel}**
-                    sebesar **{ig_s:.3f}**
-                    """
+
+                insight_box(
+                    "Insight Distribusi Umum",
+                    buat_insight_distribusi_umum(distribusi_umum, fitur_distribusi),
+                    color="#0891b2"
                 )
 
-            with col_chart2:
+            with col_umum_chart:
                 fig, ax = plt.subplots(figsize=(5.5, 4))
+
                 bars = ax.bar(
-                    df_det["Nilai"].astype(str),
-                    df_det["Entropy"],
-                    color="#2563eb",
+                    distribusi_umum["Nilai Atribut"].astype(str),
+                    distribusi_umum["Jumlah"],
+                    color="#0891b2",
                     edgecolor="white"
                 )
 
-                ax.bar_label(bars, fmt="%.3f", fontsize=9, padding=3)
-                
-                ax.set_title(f"Entropy per Nilai: {attr_sel}", fontweight="bold")
-                ax.set_ylabel("Entropy")
-                ax.yaxis.set_major_formatter(FormatStrFormatter("%.3f"))
-                plt.xticks(rotation=30, ha="right", fontsize=8)
+                ax.bar_label(bars, fontsize=9, padding=3)
+                ax.set_title(
+                    f"Distribusi Nilai Atribut: {fitur_distribusi}",
+                    fontweight="bold"
+                )
+                ax.set_ylabel("Jumlah Data")
+                plt.xticks(rotation=35, ha="right", fontsize=8)
                 plt.tight_layout()
+
                 st.pyplot(fig)
 
-            insight_box(
-                    f"Penjelasan Perhitungan Atribut {attr_sel}",
-                    buat_insight_detail_atribut(df_det, attr_sel, ig_s),
-                    color="#2563eb"
-                )
-            st.markdown("---")
-
+            # =============================
+            # CROSSTAB (HUBUNAGN FITUR DENGAN TARGET)
+            # =============================
             st.subheader("🔗 Hubungan Fitur dengan Target")
             fitur_crosstab = st.selectbox(
                 "Pilih atribut",
@@ -2422,8 +2627,8 @@ if menu == "📚 Tahapan":
 
             # Crosstab untuk chart
             ct = pd.crosstab(
-                train_df[fitur_crosstab],
-                train_df[target_Y]
+                df[fitur_crosstab],
+                df[target_Y]
             )
 
             ct.index.name = fitur_crosstab
@@ -2441,8 +2646,8 @@ if menu == "📚 Tahapan":
 
             with col_tbl:
                 st.info(
-                    "Tabel ini digunakan untuk melihat hubungan "
-                    "antara nilai atribut dengan kategori target."
+                    "Tabel ini digunakan untuk melihat hubungan antara nilai atribut "
+                    "dengan kategori target pada data final."
                 )
 
                 st.dataframe(
@@ -2479,9 +2684,162 @@ if menu == "📚 Tahapan":
                 buat_insight_crosstab(ct_table, fitur_crosstab),
                 color="#0891b2"
             )
-            
-        else:
-            st.warning("⚠️ Silakan lakukan Data Preparation terlebih dahulu.")
+
+            st.subheader("🧾 Ringkasan Atribut Berdasarkan Regu")
+            df_regu = st.session_state.get("df_eda_regu")
+
+            if df_regu is not None and "Nama Regu" in df_regu.columns:
+                df_ringkasan_regu, df_heatmap_regu = buat_ringkasan_atribut_nama_regu(
+                    df_regu,
+                    fitur_X
+                )
+
+                df_ringkasan_regu = df_ringkasan_regu.drop(
+                    columns=["Gangguan"],
+                    errors="ignore"
+                )
+
+                st.dataframe(
+                    df_ringkasan_regu,
+                    use_container_width=True,
+                    hide_index=True
+                )
+                insight_box(
+                    "Penjelasan Ringkasan Atribut per Regu",
+                    "Tabel di atas menunjukkan nilai yang paling sering muncul pada setiap regu "
+                    "berdasarkan enam atribut yang digunakan. Dari tabel di atas dapat dilihat regu mana saja "
+                    "yang sering menangani gangguan berdasarkan jumlah data, serta kondisi gangguan apa saja "
+                    "yang paling banyak ditangani oleh setiap regu selama periode data penelitian.",
+                    color="#0891b2"
+                )
+
+                st.markdown("#### Heatmap Ringkasan Atribut per Regu")
+
+                kolom_heatmap = fitur_X.copy()
+                df_heatmap_plot = df_heatmap_regu.set_index("Nama Regu")[kolom_heatmap]
+
+                fig_height = max(4, 0.60 * len(df_heatmap_plot))
+
+                fig, ax = plt.subplots(
+                    figsize=(12, fig_height),
+                    dpi=130
+                )
+
+                im = ax.imshow(
+                    df_heatmap_plot.values,
+                    aspect="auto",
+                    cmap="YlOrRd",
+                    vmin=0,
+                    vmax=100,
+                    interpolation="nearest"
+                )
+
+                # Hilangkan garis/grid yang mengganggu
+                ax.grid(False)
+                ax.xaxis.grid(False)
+                ax.yaxis.grid(False)
+                ax.tick_params(axis="both", which="both", length=0)
+
+                # Label sumbu X dan Y
+                ax.set_xticks(range(len(df_heatmap_plot.columns)))
+                ax.set_xticklabels(
+                    df_heatmap_plot.columns,
+                    rotation=35,
+                    ha="right",
+                    fontsize=10
+                )
+
+                ax.set_yticks(range(len(df_heatmap_plot.index)))
+                ax.set_yticklabels(
+                    df_heatmap_plot.index,
+                    fontsize=10
+                )
+
+                ax.set_title(
+                    "Persentase Nilai Terbanyak pada Setiap Atribut",
+                    fontweight="bold",
+                    fontsize=14,
+                    pad=14
+                )
+
+                # Hapus garis tepi grafik
+                for spine in ax.spines.values():
+                    spine.set_visible(False)
+
+                # Tambahkan angka di setiap sel dengan warna teks otomatis
+                for i in range(len(df_heatmap_plot.index)):
+                    for j in range(len(df_heatmap_plot.columns)):
+                        nilai = df_heatmap_plot.iloc[i, j]
+
+                        warna_teks = "white" if nilai >= 60 else "#111827"
+
+                        ax.text(
+                            j,
+                            i,
+                            f"{nilai:.0f}%",
+                            ha="center",
+                            va="center",
+                            fontsize=9,
+                            fontweight="bold",
+                            color=warna_teks
+                        )
+
+                # Colorbar
+                cbar = fig.colorbar(
+                    im,
+                    ax=ax,
+                    fraction=0.035,
+                    pad=0.02
+                )
+
+                cbar.set_label(
+                    "Persentase (%)",
+                    fontsize=10
+                )
+
+                cbar.ax.tick_params(labelsize=9)
+                cbar.outline.set_visible(False)
+
+                plt.tight_layout()
+                st.pyplot(fig)
+                insight_box(
+                    "Penjelasan Heatmap Ringkasan Atribut per Regu",
+                    buat_insight_heatmap_regu(
+                        df_ringkasan_regu,
+                        df_heatmap_regu,
+                        fitur_X
+                    ),
+                    color="#f59e0b"
+                )
+
+                st.markdown("---")
+                st.markdown("""
+                <div style="
+                    background-color: #f8fafc;
+                    border: 1px solid #e2e8f0;
+                    border-left: 6px solid #10b981;
+                    padding: 20px;
+                    border-radius: 12px;
+                    margin-top: 10px;
+                ">
+                    <h4 style="color: #065f46; margin-top: 0;">🎯 Kesimpulan EDA</h4>
+                    <p style="color: #334155; margin-bottom: 0; line-height: 1.7;">
+                        Berdasarkan hasil eksplorasi data, data final menunjukkan distribusi target yang tidak seimbang,
+                        dengan kelas Berat lebih dominan dibandingkan kelas Ringan. Hubungan fitur dengan target
+                        juga menunjukkan bahwa beberapa nilai atribut masih muncul pada kedua kelas, sehingga
+                        klasifikasi tingkat gangguan tidak cukup ditentukan dari satu atribut saja. Selain itu,
+                        ringkasan atribut berdasarkan regu memberikan gambaran operasional mengenai nilai-nilai
+                        atribut yang paling sering muncul pada setiap regu. Dengan demikian, tahap EDA memberikan
+                        pemahaman awal terhadap karakteristik data sebelum dilanjutkan ke tahap Modeling ID3
+                        untuk membentuk pohon keputusan klasifikasi gangguan Ringan dan Berat.
+                    </p>
+                </div>
+                """, unsafe_allow_html=True)
+
+            else:
+                st.info(
+                    "Data nama regu belum tersedia. Jalankan tahap Data Preparation terlebih dahulu."
+                )
 
     # =========================================================
     # 🌳 MODELING ID3

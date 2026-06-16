@@ -57,7 +57,7 @@ def get_preparation_steps(df):
     # 4. Seleksi fitur dan target untuk modeling
     df_final = df_clean_pre[FITUR_X + [TARGET_Y]].copy()
 
-    # 5. Normalisasi data kategorikal
+    # 5. case folding data kategorikal
     for kolom in FITUR_X:
         df_final[kolom] = df_final[kolom].astype(str).str.lower()
 
