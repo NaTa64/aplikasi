@@ -1865,7 +1865,9 @@ if menu == "📚 Tahapan":
 
             with tab4:
                 st.subheader("🏷️ Pelabelan — Variabel Target")
+                
                 col_tbl, col_chart = st.columns([1, 1])
+                
                 with col_tbl:
                     df_aturan = pd.DataFrame({"Kode Regu":["7","8"],
                                               "Jenis Kendaraan":["Motor","Mobil"],
@@ -1928,37 +1930,111 @@ if menu == "📚 Tahapan":
                         use_container_width=True,
                         hide_index=True
                     )
-                    
-                    
+
                 with col_chart:
-                    dist = (
-                        df_clean_pre["Jenis Gangguan"]
-                        .value_counts()
-                        .reindex(["Berat", "Ringan"])
-                        .fillna(0)
-                        .astype(int)
-                    )
+                    total_berhasil_label = len(df_clean_pre)
+                    total_tidak_terlabel = data_tidak_terlabel
 
-                    labels = [
-                        f"{kelas}\n{jumlah} data"
-                        for kelas, jumlah in dist.items()
-                    ]
+                    components.html(f"""
+                    <div style="
+                        font-family: Arial, sans-serif;
+                        background: #ffffff;
+                        border: 1px solid #e2e8f0;
+                        border-radius: 14px;
+                        padding: 18px 20px;
+                        box-shadow: 0 1px 4px rgba(15,23,42,0.06);
+                        width: 100%;
+                        box-sizing: border-box;
+                    ">
+                        <div style="
+                            color: #0f2540;
+                            font-size: 17px;
+                            font-weight: 800;
+                            margin-bottom: 14px;
+                        ">
+                            Ringkasan Pelabelan
+                        </div>
 
-                    fig, ax = plt.subplots(figsize=(4.8, 4.2))
+                        <div style="
+                            background: #f0fdf4;
+                            border: 1px solid #bbf7d0;
+                            border-left: 5px solid #16a34a;
+                            border-radius: 10px;
+                            padding: 12px 14px;
+                            margin-bottom: 10px;
+                        ">
+                            <div style="color:#166534;font-size:13px;font-weight:700;">
+                                Data Berhasil Diberi Label
+                            </div>
+                            <div style="color:#166534;font-size:26px;font-weight:800;margin-top:4px;">
+                                {total_berhasil_label} data
+                            </div>
+                        </div>
 
-                    ax.pie(
-                        dist.values,
-                        labels=labels,
-                        autopct="%1.2f%%",
-                        startangle=90,
-                        colors=["#2563eb", "#16a34a"],
-                        wedgeprops={"edgecolor": "white", "linewidth": 2},
-                        textprops={"fontsize": 10}
-                    )
+                        <div style="
+                            background: #fff7ed;
+                            border: 1px solid #fed7aa;
+                            border-left: 5px solid #f97316;
+                            border-radius: 10px;
+                            padding: 12px 14px;
+                            margin-bottom: 12px;
+                        ">
+                            <div style="color:#9a3412;font-size:13px;font-weight:700;">
+                                Data Tidak Terlabel
+                            </div>
+                            <div style="color:#9a3412;font-size:26px;font-weight:800;margin-top:4px;">
+                                {total_tidak_terlabel} data
+                            </div>
+                        </div>
+                    </div>
+                    """, height=380, scrolling=False)
+                    
+                    with st.expander("🧾 Lihat Ringkasan Pelabelan per Regu"):
+                        df_regu_label = df_no_dup.dropna(subset=["Jenis Gangguan"]).copy()
 
-                    ax.set_title("Distribusi Label Target", fontweight="bold")
-                    ax.axis("equal")
-                    st.pyplot(fig)
+                        df_regu_label["Nama Regu"] = (
+                            df_regu_label["Nama Regu"]
+                            .astype(str)
+                            .str.strip()
+                        )
+
+                        df_regu_label["Kode Regu"] = df_regu_label["Nama Regu"].apply(ambil_kode_awal_regu)
+
+                        ringkasan_regu = (
+                            df_regu_label
+                            .groupby(["Kode Regu", "Nama Regu", "Jenis Gangguan"])
+                            .size()
+                            .reset_index(name="Jumlah Data")
+                        )
+
+                        ringkasan_regu["Persentase"] = (
+                            ringkasan_regu["Jumlah Data"] / len(df_clean_pre) * 100
+                        ).round(2).astype(str) + "%"
+
+                        ringkasan_regu = ringkasan_regu.sort_values(
+                            ["Kode Regu", "Jumlah Data"],
+                            ascending=[True, False]
+                        )
+
+                        filter_gangguan = st.selectbox(
+                            "Filter Jenis Gangguan",
+                            ["Semua", "Ringan", "Berat"],
+                            key="filter_regu_pelabelan"
+                        )
+
+                        if filter_gangguan != "Semua":
+                            ringkasan_regu = ringkasan_regu[
+                                ringkasan_regu["Jenis Gangguan"] == filter_gangguan
+                            ]
+
+                        # Sembunyikan Persentase
+                        ringkasan_regu_tampil = ringkasan_regu.drop(columns=["Persentase"])
+
+                        st.dataframe(
+                            ringkasan_regu_tampil,
+                            use_container_width=True,
+                            hide_index=True
+                        )
 
             with tab5:
                 st.subheader("📦 Data Final")
