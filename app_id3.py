@@ -396,20 +396,17 @@ def ambil_kode_awal_regu(nama_regu):
     return None
 
 
-def ambil_nilai_terbanyak_dan_persen(series, total):
+def ambil_nilai_terbanyak(series):
     data = series.dropna().astype(str).str.strip()
 
-    if data.empty or total == 0:
-        return "-", 0
+    if data.empty:
+        return "-"
 
     hitung = data.value_counts()
     nilai = hitung.index[0]
     jumlah = int(hitung.iloc[0])
-    persen = (jumlah / total) * 100
 
-    teks = f"{nilai} ({jumlah} data)"
-
-    return teks, persen
+    return f"{nilai} ({jumlah} data)"
 
 
 def buat_ringkasan_atribut_nama_regu(df_regu, fitur_X):
@@ -421,49 +418,27 @@ def buat_ringkasan_atribut_nama_regu(df_regu, fitur_X):
     df_tmp["Kode Regu"] = df_tmp["Nama Regu"].apply(ambil_kode_awal_regu)
     df_tmp = df_tmp[df_tmp["Kode Regu"].isin(["7", "8"])]
 
-    df_tmp["Gangguan"] = df_tmp["Kode Regu"].map({
-        "7": "Ringan",
-        "8": "Berat"
-    })
-
     hasil_tabel = []
-    hasil_heatmap = []
 
-    # Di sini grouping hanya berdasarkan Nama Regu
     for nama_regu, group in df_tmp.groupby("Nama Regu"):
         total_data = len(group)
 
         kode_regu = group["Kode Regu"].mode().iloc[0]
-        gangguan = group["Gangguan"].mode().iloc[0]
 
         row_tabel = {
             "Kode Regu": kode_regu,
             "Nama Regu": nama_regu,
-            "Gangguan": gangguan,
-            "Jumlah Data": total_data
-        }
-
-        row_heatmap = {
-            "Nama Regu": nama_regu,
-            "Kode Regu": kode_regu,
-            "Gangguan": gangguan,
             "Jumlah Data": total_data
         }
 
         for fitur in fitur_X:
-            teks_nilai, persen = ambil_nilai_terbanyak_dan_persen(
-                group[fitur],
-                total_data
+            row_tabel[f"{fitur} Terbanyak"] = ambil_nilai_terbanyak(
+                group[fitur]
             )
 
-            row_tabel[f"{fitur} Terbanyak"] = teks_nilai
-            row_heatmap[fitur] = persen
-
         hasil_tabel.append(row_tabel)
-        hasil_heatmap.append(row_heatmap)
 
     df_tabel = pd.DataFrame(hasil_tabel)
-    df_heatmap = pd.DataFrame(hasil_heatmap)
 
     if not df_tabel.empty:
         df_tabel["Urutan Kode"] = df_tabel["Kode Regu"].map({
@@ -478,182 +453,7 @@ def buat_ringkasan_atribut_nama_regu(df_regu, fitur_X):
 
         df_tabel = df_tabel.drop(columns=["Urutan Kode"])
 
-    if not df_heatmap.empty:
-        df_heatmap["Urutan Kode"] = df_heatmap["Kode Regu"].map({
-            "7": 1,
-            "8": 2
-        })
-
-        df_heatmap = df_heatmap.sort_values(
-            ["Urutan Kode", "Jumlah Data"],
-            ascending=[True, False]
-        )
-
-        df_heatmap = df_heatmap.drop(columns=["Urutan Kode"])
-
-    return df_tabel, df_heatmap
-
-def buat_insight_heatmap_regu(df_ringkasan_regu, df_heatmap_regu, fitur_X):
-
-    if df_heatmap_regu is None or df_heatmap_regu.empty:
-        return "Heatmap belum memiliki data yang dapat dijelaskan."
-
-    if df_ringkasan_regu is None or df_ringkasan_regu.empty:
-        return "Tabel ringkasan belum memiliki data yang dapat dijelaskan."
-
-    kolom_regu_heatmap = "Nama Regu" if "Nama Regu" in df_heatmap_regu.columns else "Regu"
-    kolom_regu_tabel = "Nama Regu" if "Nama Regu" in df_ringkasan_regu.columns else "Regu"
-
-    if kolom_regu_heatmap not in df_heatmap_regu.columns:
-        return "Heatmap belum memiliki kolom regu yang dapat dijelaskan."
-
-    if kolom_regu_tabel not in df_ringkasan_regu.columns:
-        return "Tabel ringkasan belum memiliki kolom regu yang dapat dijelaskan."
-
-    kolom_heatmap = [
-        fitur for fitur in fitur_X
-        if fitur in df_heatmap_regu.columns
-    ]
-
-    if not kolom_heatmap:
-        return "Heatmap belum memiliki atribut yang dapat dijelaskan."
-
-    df_persen = df_heatmap_regu.set_index(kolom_regu_heatmap)[kolom_heatmap].copy()
-    df_persen = df_persen.apply(pd.to_numeric, errors="coerce")
-
-    df_stack = df_persen.stack().reset_index()
-    df_stack.columns = ["Regu", "Atribut", "Persentase"]
-    df_stack = df_stack.dropna(subset=["Persentase"])
-
-    if df_stack.empty:
-        return "Heatmap belum memiliki nilai persentase yang dapat dijelaskan."
-
-    if "Jumlah Data" in df_heatmap_regu.columns:
-        df_total = df_heatmap_regu[[kolom_regu_heatmap, "Jumlah Data"]].copy()
-        df_total = df_total.rename(columns={kolom_regu_heatmap: "Regu"})
-        df_stack = df_stack.merge(df_total, on="Regu", how="left")
-    else:
-        df_stack["Jumlah Data"] = 0
-
-    def ambil_detail_nilai(regu, atribut):
-        kolom = f"{atribut} Terbanyak"
-
-        if kolom not in df_ringkasan_regu.columns:
-            return "nilai terbanyak", None, None
-
-        row = df_ringkasan_regu[df_ringkasan_regu[kolom_regu_tabel] == regu]
-
-        if row.empty:
-            return "nilai terbanyak", None, None
-
-        teks = str(row.iloc[0][kolom])
-
-        try:
-            total_data = int(row.iloc[0]["Jumlah Data"])
-        except:
-            total_data = None
-
-        match = re.search(r"^(.*?)\s*\((\d+)\s*data", teks)
-
-        if match:
-            nilai = match.group(1)
-            jumlah = int(match.group(2))
-        else:
-            nilai = teks
-            jumlah = None
-
-        return nilai, jumlah, total_data
-
-    def format_detail(nilai, jumlah, total, persen):
-        if jumlah is not None and total is not None:
-            return (
-                f"<b>{nilai}</b> sebanyak <b>{jumlah}</b> dari <b>{total}</b> data "
-                f"atau sekitar <b>{persen:.0f}%</b>"
-            )
-
-        if jumlah is not None:
-            return (
-                f"<b>{nilai}</b> sebanyak <b>{jumlah}</b> data "
-                f"atau sekitar <b>{persen:.0f}%</b>"
-            )
-
-        return f"<b>{nilai}</b> dengan persentase sekitar <b>{persen:.0f}%</b>"
-
-    data_contoh_1 = None
-    data_contoh_2 = None
-
-    df_100 = df_stack[df_stack["Persentase"] >= 99.5].copy()
-    df_100 = df_100.sort_values(
-        ["Jumlah Data", "Persentase"],
-        ascending=[False, False]
-    )
-
-    for _, row_100 in df_100.iterrows():
-        regu = row_100["Regu"]
-
-        df_satu_regu = df_stack[
-            (df_stack["Regu"] == regu) &
-            (df_stack["Persentase"] < 99.5)
-        ].copy()
-
-        if not df_satu_regu.empty:
-            data_contoh_1 = row_100
-            data_contoh_2 = df_satu_regu.sort_values("Persentase").iloc[0]
-            break
-
-    if data_contoh_1 is None:
-        for regu, group in df_stack.groupby("Regu"):
-            if len(group) >= 2:
-                group_sorted = group.sort_values("Persentase", ascending=False)
-                data_contoh_1 = group_sorted.iloc[0]
-                data_contoh_2 = group_sorted.iloc[-1]
-                break
-
-    if data_contoh_1 is None:
-        data_contoh_1 = df_stack.sort_values("Persentase", ascending=False).iloc[0]
-
-    nilai_1, jumlah_1, total_1 = ambil_detail_nilai(
-        data_contoh_1["Regu"],
-        data_contoh_1["Atribut"]
-    )
-
-    detail_1 = format_detail(
-        nilai_1,
-        jumlah_1,
-        total_1,
-        data_contoh_1["Persentase"]
-    )
-
-    kalimat_contoh = (
-        f"Contohnya pada regu <b>{data_contoh_1['Regu']}</b>, atribut "
-        f"<b>{data_contoh_1['Atribut']}</b> memiliki nilai atribut terbanyak {detail_1}. "
-    )
-
-    if data_contoh_2 is not None:
-        nilai_2, jumlah_2, total_2 = ambil_detail_nilai(
-            data_contoh_2["Regu"],
-            data_contoh_2["Atribut"]
-        )
-
-        detail_2 = format_detail(
-            nilai_2,
-            jumlah_2,
-            total_2,
-            data_contoh_2["Persentase"]
-        )
-
-        kalimat_contoh += (
-            f"Pada regu yang sama, atribut <b>{data_contoh_2['Atribut']}</b> "
-            f"memiliki nilai terbanyak {detail_2}. "
-        )
-
-    return (
-    "Heatmap di atas menunjukkan persentase nilai terbanyak dari enam atribut pada setiap regu. "
-    f"{kalimat_contoh}"
-    "Artinya, warna pekat berarti nilai tersebut sering muncul, sedangkan warna terang berarti nilai atributnya "
-    "tidak menumpuk pada satu nilai saja."
-)
-
+    return df_tabel
 
 # =============================
 # MENU NAVIGASI
@@ -1989,52 +1789,52 @@ if menu == "📚 Tahapan":
                     </div>
                     """, height=380, scrolling=False)
                     
-                    with st.expander("🧾 Lihat Ringkasan Pelabelan per Regu"):
-                        df_regu_label = df_no_dup.dropna(subset=["Jenis Gangguan"]).copy()
+                    # with st.expander("🧾 Lihat Ringkasan Pelabelan per Regu"):
+                    #     df_regu_label = df_no_dup.dropna(subset=["Jenis Gangguan"]).copy()
 
-                        df_regu_label["Nama Regu"] = (
-                            df_regu_label["Nama Regu"]
-                            .astype(str)
-                            .str.strip()
-                        )
+                    #     df_regu_label["Nama Regu"] = (
+                    #         df_regu_label["Nama Regu"]
+                    #         .astype(str)
+                    #         .str.strip()
+                    #     )
 
-                        df_regu_label["Kode Regu"] = df_regu_label["Nama Regu"].apply(ambil_kode_awal_regu)
+                    #     df_regu_label["Kode Regu"] = df_regu_label["Nama Regu"].apply(ambil_kode_awal_regu)
 
-                        ringkasan_regu = (
-                            df_regu_label
-                            .groupby(["Kode Regu", "Nama Regu", "Jenis Gangguan"])
-                            .size()
-                            .reset_index(name="Jumlah Data")
-                        )
+                    #     ringkasan_regu = (
+                    #         df_regu_label
+                    #         .groupby(["Kode Regu", "Nama Regu", "Jenis Gangguan"])
+                    #         .size()
+                    #         .reset_index(name="Jumlah Data")
+                    #     )
 
-                        ringkasan_regu["Persentase"] = (
-                            ringkasan_regu["Jumlah Data"] / len(df_clean_pre) * 100
-                        ).round(2).astype(str) + "%"
+                    #     ringkasan_regu["Persentase"] = (
+                    #         ringkasan_regu["Jumlah Data"] / len(df_clean_pre) * 100
+                    #     ).round(2).astype(str) + "%"
 
-                        ringkasan_regu = ringkasan_regu.sort_values(
-                            ["Kode Regu", "Jumlah Data"],
-                            ascending=[True, False]
-                        )
+                    #     ringkasan_regu = ringkasan_regu.sort_values(
+                    #         ["Kode Regu", "Jumlah Data"],
+                    #         ascending=[True, False]
+                    #     )
 
-                        filter_gangguan = st.selectbox(
-                            "Filter Jenis Gangguan",
-                            ["Semua", "Ringan", "Berat"],
-                            key="filter_regu_pelabelan"
-                        )
+                    #     filter_gangguan = st.selectbox(
+                    #         "Filter Jenis Gangguan",
+                    #         ["Semua", "Ringan", "Berat"],
+                    #         key="filter_regu_pelabelan"
+                    #     )
 
-                        if filter_gangguan != "Semua":
-                            ringkasan_regu = ringkasan_regu[
-                                ringkasan_regu["Jenis Gangguan"] == filter_gangguan
-                            ]
+                    #     if filter_gangguan != "Semua":
+                    #         ringkasan_regu = ringkasan_regu[
+                    #             ringkasan_regu["Jenis Gangguan"] == filter_gangguan
+                    #         ]
 
-                        # Sembunyikan Persentase
-                        ringkasan_regu_tampil = ringkasan_regu.drop(columns=["Persentase"])
+                    #     # Sembunyikan Persentase
+                    #     ringkasan_regu_tampil = ringkasan_regu.drop(columns=["Persentase"])
 
-                        st.dataframe(
-                            ringkasan_regu_tampil,
-                            use_container_width=True,
-                            hide_index=True
-                        )
+                    #     st.dataframe(
+                    #         ringkasan_regu_tampil,
+                    #         use_container_width=True,
+                    #         hide_index=True
+                    #     )
 
             with tab5:
                 st.subheader("📦 Data Final")
@@ -2765,11 +2565,10 @@ if menu == "📚 Tahapan":
             df_regu = st.session_state.get("df_eda_regu")
 
             if df_regu is not None and "Nama Regu" in df_regu.columns:
-                df_ringkasan_regu, df_heatmap_regu = buat_ringkasan_atribut_nama_regu(
+                df_ringkasan_regu = buat_ringkasan_atribut_nama_regu(
                     df_regu,
                     fitur_X
                 )
-
                 df_ringkasan_regu = df_ringkasan_regu.drop(
                     columns=["Gangguan"],
                     errors="ignore"
@@ -2789,105 +2588,6 @@ if menu == "📚 Tahapan":
                     color="#0891b2"
                 )
 
-                st.markdown("#### Heatmap Ringkasan Atribut per Regu")
-
-                kolom_heatmap = fitur_X.copy()
-                df_heatmap_plot = df_heatmap_regu.set_index("Nama Regu")[kolom_heatmap]
-
-                fig_height = max(4, 0.60 * len(df_heatmap_plot))
-
-                fig, ax = plt.subplots(
-                    figsize=(12, fig_height),
-                    dpi=130
-                )
-
-                im = ax.imshow(
-                    df_heatmap_plot.values,
-                    aspect="auto",
-                    cmap="YlOrRd",
-                    vmin=0,
-                    vmax=100,
-                    interpolation="nearest"
-                )
-
-                # Hilangkan garis/grid yang mengganggu
-                ax.grid(False)
-                ax.xaxis.grid(False)
-                ax.yaxis.grid(False)
-                ax.tick_params(axis="both", which="both", length=0)
-
-                # Label sumbu X dan Y
-                ax.set_xticks(range(len(df_heatmap_plot.columns)))
-                ax.set_xticklabels(
-                    df_heatmap_plot.columns,
-                    rotation=35,
-                    ha="right",
-                    fontsize=10
-                )
-
-                ax.set_yticks(range(len(df_heatmap_plot.index)))
-                ax.set_yticklabels(
-                    df_heatmap_plot.index,
-                    fontsize=10
-                )
-
-                ax.set_title(
-                    "Persentase Nilai Terbanyak pada Setiap Atribut",
-                    fontweight="bold",
-                    fontsize=14,
-                    pad=14
-                )
-
-                # Hapus garis tepi grafik
-                for spine in ax.spines.values():
-                    spine.set_visible(False)
-
-                # Tambahkan angka di setiap sel dengan warna teks otomatis
-                for i in range(len(df_heatmap_plot.index)):
-                    for j in range(len(df_heatmap_plot.columns)):
-                        nilai = df_heatmap_plot.iloc[i, j]
-
-                        warna_teks = "white" if nilai >= 60 else "#111827"
-
-                        ax.text(
-                            j,
-                            i,
-                            f"{nilai:.0f}%",
-                            ha="center",
-                            va="center",
-                            fontsize=9,
-                            fontweight="bold",
-                            color=warna_teks
-                        )
-
-                # Colorbar
-                cbar = fig.colorbar(
-                    im,
-                    ax=ax,
-                    fraction=0.035,
-                    pad=0.02
-                )
-
-                cbar.set_label(
-                    "Persentase (%)",
-                    fontsize=10
-                )
-
-                cbar.ax.tick_params(labelsize=9)
-                cbar.outline.set_visible(False)
-
-                plt.tight_layout()
-                st.pyplot(fig)
-                insight_box(
-                    "Penjelasan Heatmap Ringkasan Atribut per Regu",
-                    buat_insight_heatmap_regu(
-                        df_ringkasan_regu,
-                        df_heatmap_regu,
-                        fitur_X
-                    ),
-                    color="#f59e0b"
-                )
-
                 st.markdown("---")
                 st.markdown("""
                 <div style="
@@ -2904,8 +2604,8 @@ if menu == "📚 Tahapan":
                         dengan kelas Berat lebih dominan dibandingkan kelas Ringan. Hubungan fitur dengan target
                         juga menunjukkan bahwa beberapa nilai atribut masih muncul pada kedua kelas, sehingga
                         klasifikasi tingkat gangguan tidak cukup ditentukan dari satu atribut saja. Selain itu,
-                        ringkasan atribut berdasarkan regu memberikan gambaran operasional mengenai nilai-nilai
-                        atribut yang paling sering muncul pada setiap regu. Dengan demikian, tahap EDA memberikan
+                        ringkasan atribut berdasarkan regu memberikan gambaran operasional mengenai gangguan
+                        yang paling sering muncul pada setiap regu. Dengan demikian, tahap EDA memberikan
                         pemahaman awal terhadap karakteristik data sebelum dilanjutkan ke tahap Modeling ID3
                         untuk membentuk pohon keputusan klasifikasi gangguan Ringan dan Berat.
                     </p>
