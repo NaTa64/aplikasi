@@ -250,3 +250,9 @@
         color: #d4e5f7 !important;
         font-weight: 600 !important;
     }
+    
+    /* Hilangkan teks batas ukuran file pada file uploader */
+    [data-testid="stFileUploaderDropzone"] small,
+    [data-testid="stFileUploaderDropzoneInstructions"] {
+        display: none !important;
+    }
