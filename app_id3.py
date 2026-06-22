@@ -455,6 +455,48 @@ def buat_ringkasan_atribut_nama_regu(df_regu, fitur_X):
 
     return df_tabel
 
+def cek_indikator_risiko(input_user):
+    kata_risiko = [
+        "kebakaran",
+        "api",
+        "meledak",
+        "ledakan",
+        "pohon",
+        "tumbang",
+        "dahan",
+        "ranting",
+        "binatang",
+        "hewan",
+        "burung",
+        "ular",
+        "kucing",
+        "bencana",
+        "musibah",
+        "banjir",
+        "petir"
+    ]
+
+    atribut_dicek = [
+        "Dampak Kerusakan",
+        "Penyebab",
+        "Kelompok Penyebab"
+    ]
+
+    indikator_ditemukan = []
+
+    for atribut in atribut_dicek:
+        nilai = input_user.get(atribut, "")
+        teks_nilai = str(nilai).lower()
+
+        for kata in kata_risiko:
+            if kata in teks_nilai:
+                indikator_ditemukan.append(
+                    f"{atribut}: {nilai}"
+                )
+                break
+
+    return indikator_ditemukan
+
 # =============================
 # MENU NAVIGASI
 # =============================
@@ -5044,8 +5086,11 @@ if menu == "📚 Tahapan":
 # ⚙️ KLASIFIKASI GANGGUAN
 # =========================================================
 elif menu == "⚙️ Klasifikasi Gangguan":
-    st.title("📊 Klasifikasi Gangguan — Decision Tree ID3")
-    st.caption("Masukkan parameter gangguan untuk mendapatkan hasil klasifikasi gangguan.")
+    st.title("📊 Klasifikasi Gangguan Berdasarkan Model Decision Tree ID3")
+    st.caption(
+        "Menu ini menggunakan model Decision Tree ID3 yang telah dibangun pada tahap Modeling "
+        "untuk memprediksi tingkat gangguan berdasarkan kombinasi nilai atribut input."
+    )
     st.markdown("---")
 
     if "model_tree" in st.session_state and "df_final" in st.session_state:
@@ -5056,41 +5101,130 @@ elif menu == "⚙️ Klasifikasi Gangguan":
 
         input_user = {}
         cols_input = st.columns(2)
+        
         for i, f in enumerate(fitur_X):
             opsi = sorted(st.session_state.df_final[f].unique())
             with cols_input[i % 2]:
                 input_user[f] = st.selectbox(f"**{f}**", opsi)
 
         st.markdown("")
+        
         if st.button("🔍 Klasifikasi Gangguan"):
             hasil = predict_single_row(input_user, model_tree)
+            indikator_risiko = cek_indikator_risiko(input_user)
+            
             if hasil.lower() == "berat":
                 st.markdown(f"""
-                <div style="background:#fef2f2;border:2px solid #dc2626;border-radius:12px;
-                            padding:20px;text-align:center;margin-top:16px;">
+                <div style="
+                    background:#fef2f2;
+                    border:2px solid #dc2626;
+                    border-radius:12px;
+                    padding:20px;
+                    text-align:center;
+                    margin-top:16px;
+                ">
                     <div style="font-size:2.5rem;">🚨</div>
-                    <div style="font-size:1.4rem;font-weight:800;color:#dc2626;margin-top:8px;">Hasil Prediksi: BERAT</div>
-                    <div style="color:#7f1d1d;margin-top:6px;font-size:0.9rem;">
-                        Gangguan ini tergolong berat — butuh tim teknis dengan kendaraan roda empat.
+                    <div style="
+                        font-size:1.4rem;
+                        font-weight:800;
+                        color:#dc2626;
+                        margin-top:8px;
+                    ">
+                        Hasil Prediksi Model ID3: BERAT
                     </div>
-                </div>""", unsafe_allow_html=True)
+                    <div style="
+                        color:#7f1d1d;
+                        margin-top:6px;
+                        font-size:0.9rem;
+                        line-height:1.6;
+                    ">
+                        Berdasarkan model ID3, kombinasi atribut ini diprediksi sebagai gangguan berat.
+                        Hasil ini dapat digunakan sebagai pendukung keputusan awal dalam penentuan tim teknis.
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+                
             else:
                 st.markdown(f"""
-                <div style="background:#f0fdf4;border:2px solid #16a34a;border-radius:12px;
-                            padding:20px;text-align:center;margin-top:16px;">
+                <div style="
+                    background:#f0fdf4;
+                    border:2px solid #16a34a;
+                    border-radius:12px;
+                    padding:20px;
+                    text-align:center;
+                    margin-top:16px;
+                ">
                     <div style="font-size:2.5rem;">✅</div>
-                    <div style="font-size:1.4rem;font-weight:800;color:#16a34a;margin-top:8px;">Hasil Prediksi: RINGAN</div>
-                    <div style="color:#14532d;margin-top:6px;font-size:0.9rem;">
-                        Gangguan ini tergolong ringan — dapat ditangani tim teknis dengan kendaraan roda dua.
+                    <div style="
+                        font-size:1.4rem;
+                        font-weight:800;
+                        color:#16a34a;
+                        margin-top:8px;
+                    ">
+                        Hasil Prediksi Model ID3: RINGAN
                     </div>
-                </div>""", unsafe_allow_html=True)
+                    <div style="
+                        color:#14532d;
+                        margin-top:6px;
+                        font-size:0.9rem;
+                        line-height:1.6;
+                    ">
+                        Berdasarkan model ID3, kombinasi atribut ini diprediksi sebagai gangguan ringan.
+                        Hasil ini digunakan sebagai pendukung keputusan awal dan tetap dapat diverifikasi
+                        dengan kondisi aktual di lapangan.
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+
+            if hasil.lower() == "ringan" and indikator_risiko:
+                indikator_teks = ", ".join(indikator_risiko)
+
+                st.markdown(f"""
+                <div style="
+                    background:#fff7ed;
+                    border:2px solid #f97316;
+                    border-radius:12px;
+                    padding:16px 18px;
+                    margin-top:14px;
+                    color:#7c2d12;
+                    line-height:1.6;
+                ">
+                    <div style="
+                        font-weight:800;
+                        font-size:1rem;
+                        margin-bottom:6px;
+                    ">
+                        ⚠️ Catatan Risiko Operasional
+                    </div>
+                    <div style="font-size:0.9rem;">
+                        Model memprediksi gangguan sebagai <b>Ringan</b>. Namun, input mengandung
+                        indikator risiko berupa <b>{indikator_teks}</b>. Oleh karena itu, hasil prediksi
+                        sebaiknya tetap diverifikasi oleh petugas atau Command Center sebelum dijadikan
+                        dasar penugasan akhir.
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+
     else:
         st.markdown("""
-        <div style="background:#fefce8;border:1px dashed #ca8a04;border-radius:10px;
-                    padding:2rem;text-align:center;color:#92400e;">
+        <div style="
+            background:#fefce8;
+            border:1px dashed #ca8a04;
+            border-radius:10px;
+            padding:2rem;
+            text-align:center;
+            color:#92400e;
+        ">
             <div style="font-size:2rem;">⚠️</div>
-            <div style="font-weight:700;font-size:1.05rem;margin:8px 0;">
+            <div style="
+                font-weight:700;
+                font-size:1.05rem;
+                margin:8px 0;
+            ">
                 Silakan selesaikan tahapan Modeling terlebih dahulu sebelum melakukan klasifikasi.
             </div>
-            <div style="font-size:0.85rem;">Navigasi → 📚 Tahapan → 4. Modeling</div>
-        </div>""", unsafe_allow_html=True)
+            <div style="font-size:0.85rem;">
+                Navigasi → 📚 Tahapan → 4. Modeling
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
