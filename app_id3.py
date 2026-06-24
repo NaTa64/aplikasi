@@ -634,7 +634,7 @@ if menu == "📚 Tahapan":
                     Konteks Operasional
                 </div>
                 <div style="color:#1a202c;font-size:0.93rem;line-height:1.75;">
-                    PT PLN Unit Layanan Pelanggan (ULP) Samarinda Seberang menerima laporan gangguan listrik dari pelanggan melalui <em>Command Center</em>. Setiap laporan perlu dialokasikan kepada tim teknis yang sesuai — tim <strong>motor (PRC)</strong> untuk gangguan ringan, atau tim <strong>mobil (DGA)</strong> untuk gangguan berat.
+                    PT PLN Unit Layanan Pelanggan (ULP) Samarinda Seberang menerima laporan gangguan listrik dari pelanggan melalui <em>Command Center</em>. Setiap laporan perlu dialokasikan kepada tim teknis yang sesuai — tim <strong>motor</strong> untuk gangguan ringan, atau tim <strong>mobil</strong> untuk gangguan berat.
                 </div>
             </div>
             """, unsafe_allow_html=True)
@@ -694,12 +694,12 @@ if menu == "📚 Tahapan":
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
                 <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px 12px;text-align:center;">
                 <div style="font-size:1.3rem;">🛵</div>
-                <div style="font-weight:700;color:#166534;font-size:0.82rem;margin-top:4px;">Tim Motor (PRC)</div>
+                <div style="font-weight:700;color:#166534;font-size:0.82rem;margin-top:4px;">Tim Motor</div>
                 <div style="color:#64748b;font-size:0.75rem;">Gangguan Ringan</div>
                 </div>
                 <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:10px 12px;text-align:center;">
                 <div style="font-size:1.3rem;">🛻</div>
-                <div style="font-weight:700;color:#991b1b;font-size:0.82rem;margin-top:4px;">Tim Mobil (DGA)</div>
+                <div style="font-weight:700;color:#991b1b;font-size:0.82rem;margin-top:4px;">Tim Mobil</div>
                 <div style="color:#64748b;font-size:0.75rem;">Gangguan Berat</div>
                 </div>
                 </div>
@@ -862,7 +862,7 @@ if menu == "📚 Tahapan":
                         <div style="font-size:1.8rem;margin-bottom:6px;">🚨</div>
                         <div style="font-weight:800;color:#991b1b;font-size:1rem;">BERAT</div>
                         <div style="color:#64748b;font-size:0.82rem;margin-top:4px;line-height:1.5;">
-                            Ditangani tim <strong>mobil (DGA)</strong>.<br>
+                            Ditangani tim <strong>mobil</strong>.<br>
                             Kode regu diawali angka <strong>8</strong>.
                         </div>
                     </div>
@@ -870,7 +870,7 @@ if menu == "📚 Tahapan":
                         <div style="font-size:1.8rem;margin-bottom:6px;">✅</div>
                         <div style="font-weight:800;color:#166534;font-size:1rem;">RINGAN</div>
                         <div style="color:#64748b;font-size:0.82rem;margin-top:4px;line-height:1.5;">
-                            Ditangani tim <strong>motor (PRC)</strong>.<br>
+                            Ditangani tim <strong>motor</strong>.<br>
                             Kode regu diawali angka <strong>7</strong>.
                         </div>
                     </div>
