@@ -4387,7 +4387,7 @@ if menu == "📚 Tahapan":
                         {accuracy*100:.2f}%
                     </div>
                     <div style="font-size: 0.78rem; color: #94a3b8; margin-top: 4px;">
-                        metrik pendukung
+                        prediksi benar dari data uji
                     </div>
                 </div>
 
@@ -4768,7 +4768,7 @@ if menu == "📚 Tahapan":
                             {summary['accuracy']*100:.2f}%
                         </div>
                         <div style="font-size: 0.78rem; color: #94a3b8; margin-top: 4px;">
-                            metrik pendukung
+                            prediksi benar dari data uji
                         </div>
                     </div>
 
