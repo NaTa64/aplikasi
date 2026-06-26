@@ -655,13 +655,13 @@ if menu == "📚 Tahapan":
                     <div style="background:#ffffff;border:1px solid #fed7aa;border-radius:10px;padding:10px 14px;display:flex;gap:10px;align-items:flex-start;">
                         <span style="font-size:1rem;min-width:22px;">❌</span>
                         <span style="color:#1a202c;font-size:0.88rem;line-height:1.55;">
-                            <strong>Proses pemeriksaan manual</strong> — setiap laporan masih perlu ditinjau satu per satu sebelum dialokasikan ke tim teknis.
+                            <strong>Proses pemeriksaan manual</strong> — setiap laporan gangguan masih perlu ditinjau terlebih dahulu oleh Command Center sebelum dialokasikan ke tim teknis.
                         </span>
                     </div>
                     <div style="background:#ffffff;border:1px solid #fed7aa;border-radius:10px;padding:10px 14px;display:flex;gap:10px;align-items:flex-start;">
                         <span style="font-size:1rem;min-width:22px;">❌</span>
                         <span style="color:#1a202c;font-size:0.88rem;line-height:1.55;">
-                            <strong>Kesalahan penugasan</strong> — laporan gangguan berat berpotensi dialokasikan kepada tim yang kurang sesuai.
+                            <strong>Kesalahan penugasan</strong> — laporan gangguan berpotensi dialokasikan kepada tim yang kurang sesuai.
                         </span>
                     </div>
                     <div style="background:#ffffff;border:1px solid #fed7aa;border-radius:10px;padding:10px 14px;display:flex;gap:10px;align-items:flex-start;">
