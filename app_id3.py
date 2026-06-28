@@ -727,7 +727,7 @@ if menu == "📚 Tahapan":
                 Kebutuhan Solusi
             </div>
             <div style="color:#1a202c;font-size:0.93rem;line-height:1.75;">
-                Diperlukan suatu sistem berbasis data yang mampu mengklasifikasikan tingkat gangguan listrik berdasarkan atribut yang tercatat pada laporan gangguan. Sistem ini diharapkan dapat menjadi <strong>pendukung keputusan</strong> bagi <em>Command Center</em> dalam proses alokasi tim teknis, sehingga proses penentuan tim dapat dilakukan secara lebih terstruktur dan berbasis data..
+                Diperlukan suatu sistem berbasis data yang mampu mengklasifikasikan tingkat gangguan listrik berdasarkan atribut yang tercatat pada laporan gangguan. Sistem ini diharapkan dapat menjadi <strong>dasar pendukung keputusan</strong> bagi <em>Command Center</em> dalam proses alokasi tim teknis, sehingga proses penentuan tim dapat dilakukan secara lebih terstruktur dan berbasis data..
             </div>
         </div>
         """, unsafe_allow_html=True)
