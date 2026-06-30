@@ -2111,7 +2111,7 @@ if menu == "📚 Tahapan":
                     Pembagian data dilakukan dengan rasio 80:20 menggunakan stratified split.
 
                     Metode ini digunakan untuk menjaga proporsi kelas target
-                    antara data latih dan data uji tetap seimbang,
+                    antara data latih dan data uji tetap terjaga,
                     sehingga distribusi kategori Ringan dan Berat
                     pada kedua dataset tidak berbeda jauh.
 
