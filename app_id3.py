@@ -2108,7 +2108,7 @@ if menu == "📚 Tahapan":
                 
                 st.info(
                     """
-                    Pembagian data dilakukan dengan rasio 80:20 menggunakan stratified random split.
+                    Pembagian data dilakukan dengan rasio 80:20 menggunakan stratified split.
 
                     Metode ini digunakan untuk menjaga proporsi kelas target
                     antara data latih dan data uji tetap seimbang,
