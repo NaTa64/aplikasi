@@ -1464,7 +1464,7 @@ if menu == "📚 Tahapan":
                         axis=1
                     )
                 ]
-                st.dataframe(df_s1, use_container_width=True)
+                st.dataframe(df_s1, use_container_width=True, hide_index=True)
                 st.caption(f"Menampilkan {len(df_s1)} dari {len(df)} record")
 
             
