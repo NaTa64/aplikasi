@@ -2282,6 +2282,7 @@ if menu == "📚 Tahapan":
                     st.dataframe(df_summary, use_container_width=True, hide_index=True)
                     gap_val = gap["Gap Entropy"]
                     st.success(f"Selisih entropy latih-uji: **{gap_val:.3f}** ({gap_val*100:.2f}%)")
+                    
                 with col_chart:
                     fig, axes = plt.subplots(1, 2, figsize=(6, 4))
                     for i, (label, summary) in enumerate([("Latih", train_summary), ("Uji", test_summary)]):
@@ -2292,10 +2293,6 @@ if menu == "📚 Tahapan":
                         axes[i].set_title(f"Data {label}", fontweight="bold")
                     plt.tight_layout()
                     st.pyplot(fig)
-                    st.caption(
-                        "Distribusi kelas target pada data latih dan data uji "
-                        "tetap seimbang setelah proses stratified split."
-                    )
 
                 # =============================
                 # TABEL DATA LATIH
