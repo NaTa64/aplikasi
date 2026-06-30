@@ -1522,123 +1522,123 @@ if menu == "📚 Tahapan":
                         "Tidak ditemukan data duplikat."
                     )
 
-                col1, col2 = st.columns(2)
+                # col1, col2 = st.columns(2)
 
-                with col1:
+                # with col1:
 
-                    missing_clean = (
-                        df_no_dup.isnull()
-                        .sum()
-                        .reset_index()
-                    )
+                #     missing_clean = (
+                #         df_no_dup.isnull()
+                #         .sum()
+                #         .reset_index()
+                #     )
 
-                    missing_clean.columns = [
-                        "Kolom",
-                        "Jumlah Missing"
-                    ]
+                #     missing_clean.columns = [
+                #         "Kolom",
+                #         "Jumlah Missing"
+                #     ]
 
-                    st.markdown("### ⚠️ Missing Value")
+                #     st.markdown("### ⚠️ Missing Value")
 
-                    st.dataframe(
-                        missing_clean,
-                        use_container_width=True,
-                        hide_index=True
-                    )
+                #     st.dataframe(
+                #         missing_clean,
+                #         use_container_width=True,
+                #         hide_index=True
+                #     )
 
-                with col2:
+                # with col2:
 
-                    st.markdown("### 📊 Visualisasi Missing Value")
+                #     st.markdown("### 📊 Visualisasi Missing Value")
 
-                    missing_vis = missing_clean[
-                        missing_clean["Jumlah Missing"] > 0
-                    ]
+                #     missing_vis = missing_clean[
+                #         missing_clean["Jumlah Missing"] > 0
+                #     ]
 
-                    if not missing_vis.empty:
+                #     if not missing_vis.empty:
 
-                        fig, ax = plt.subplots(figsize=(5,3.5))
+                #         fig, ax = plt.subplots(figsize=(5,3.5))
 
-                        bars = ax.barh(
-                            missing_vis["Kolom"],
-                            missing_vis["Jumlah Missing"],
-                            color="#dc2626",
-                            edgecolor="white"
-                        )
+                #         bars = ax.barh(
+                #             missing_vis["Kolom"],
+                #             missing_vis["Jumlah Missing"],
+                #             color="#dc2626",
+                #             edgecolor="white"
+                #         )
 
-                        ax.bar_label(
-                            bars,
-                            fontsize=9,
-                            padding=3
-                        )
+                #         ax.bar_label(
+                #             bars,
+                #             fontsize=9,
+                #             padding=3
+                #         )
 
-                        ax.set_xlabel("Jumlah Missing")
+                #         ax.set_xlabel("Jumlah Missing")
 
-                        ax.set_title(
-                            "Jumlah Missing Value per Kolom",
-                            fontweight="bold"
-                        )
+                #         ax.set_title(
+                #             "Jumlah Missing Value per Kolom",
+                #             fontweight="bold"
+                #         )
 
-                        plt.tight_layout()
+                #         plt.tight_layout()
 
-                        st.pyplot(fig)
+                #         st.pyplot(fig)
 
-                    else:
+                #     else:
 
-                        st.success(
-                            "Tidak ada missing value."
-                        )
-                # =============================
-                # PENJELASAN OTOMATIS MISSING VALUE
-                # =============================
-                total_missing_umum = missing_clean["Jumlah Missing"].sum()
+                #         st.success(
+                #             "Tidak ada missing value."
+                #         )
+                # # =============================
+                # # PENJELASAN OTOMATIS MISSING VALUE
+                # # =============================
+                # total_missing_umum = missing_clean["Jumlah Missing"].sum()
 
-                missing_model_check = (
-                    df_final[fitur_X + [target_Y]]
-                    .isnull()
-                    .sum()
-                )
+                # missing_model_check = (
+                #     df_final[fitur_X + [target_Y]]
+                #     .isnull()
+                #     .sum()
+                # )
 
-                total_missing_model = missing_model_check.sum()
+                # total_missing_model = missing_model_check.sum()
 
-                kolom_missing_umum = missing_clean[
-                    missing_clean["Jumlah Missing"] > 0
-                ]["Kolom"].tolist()
+                # kolom_missing_umum = missing_clean[
+                #     missing_clean["Jumlah Missing"] > 0
+                # ]["Kolom"].tolist()
 
-                kolom_missing_model = missing_model_check[
-                    missing_model_check > 0
-                ].index.tolist()
+                # kolom_missing_model = missing_model_check[
+                #     missing_model_check > 0
+                # ].index.tolist()
 
-                if total_missing_umum == 0:
-                    st.success(
-                        """
-                        Tidak ditemukan missing value pada data setelah proses penghapusan duplikat.
-                        Data dapat dilanjutkan ke tahap pelabelan, seleksi fitur, dan case folding.
-                        """
-                    )
+                # if total_missing_umum == 0:
+                #     st.success(
+                #         """
+                #         Tidak ditemukan missing value pada data setelah proses penghapusan duplikat.
+                #         Data dapat dilanjutkan ke tahap pelabelan, seleksi fitur, dan case folding.
+                #         """
+                #     )
 
-                elif total_missing_model == 0:
-                    st.info(
-                        f"""
-                        Missing value ditemukan pada beberapa kolom data umum,
-                        yaitu: **{", ".join(kolom_missing_umum)}**.
+                # elif total_missing_model == 0:
+                #     st.info(
+                #         f"""
+                #         Missing value ditemukan pada beberapa kolom data umum,
+                #         yaitu: **{", ".join(kolom_missing_umum)}**.
 
-                        Namun setelah dilakukan pelabelan dan seleksi fitur,
-                        tidak terdapat missing value pada kolom yang digunakan sebagai
-                        fitur model (X) maupun target (Y).
+                #         Namun setelah dilakukan pelabelan dan seleksi fitur,
+                #         tidak terdapat missing value pada kolom yang digunakan sebagai
+                #         fitur model (X) maupun target (Y).
 
-                        Dengan demikian, data yang masuk ke proses modeling ID3 tetap aman digunakan.
-                        """
-                    )
+                #         Dengan demikian, data yang masuk ke proses modeling ID3 tetap aman digunakan.
+                #         """
+                #     )
 
-                else:
-                    st.warning(
-                        f"""
-                        Missing value masih ditemukan pada kolom yang digunakan untuk modeling,
-                        yaitu: **{", ".join(kolom_missing_model)}**.
+                # else:
+                #     st.warning(
+                #         f"""
+                #         Missing value masih ditemukan pada kolom yang digunakan untuk modeling,
+                #         yaitu: **{", ".join(kolom_missing_model)}**.
 
-                        Data pada kolom tersebut perlu diperiksa kembali karena dapat memengaruhi
-                        proses pembentukan model Decision Tree ID3.
-                        """
-                    )
+                #         Data pada kolom tersebut perlu diperiksa kembali karena dapat memengaruhi
+                #         proses pembentukan model Decision Tree ID3.
+                #         """
+                #     )
                 
                 # =============================
                 # DATA SETELAH CLEANING
