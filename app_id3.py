@@ -455,6 +455,21 @@ def buat_ringkasan_atribut_nama_regu(df_regu, fitur_X):
 
     return df_tabel
 
+def format_tabel_detail_id3(df_detail):
+    df_tampil = df_detail.copy()
+
+    df_tampil = df_tampil.drop(
+        columns=["Proporsi"],
+        errors="ignore"
+    )
+
+    if "Entropy" in df_tampil.columns:
+        df_tampil["Entropy"] = df_tampil["Entropy"].apply(
+            lambda x: f"{x:.3f}"
+        )
+
+    return df_tampil
+
 def cek_indikator_risiko(input_user):
     kata_risiko = [
         "kebakaran",
@@ -1757,21 +1772,6 @@ if menu == "📚 Tahapan":
                         st.success(
                             "Semua data setelah cleaning berhasil diberi label berdasarkan kode regu 7 dan 8."
                         )
-                    
-                    st.markdown("### 📄 Contoh Hasil Pelabelan")
-                    df_label = df_no_dup[
-                        [
-                            "No Laporan",
-                            "Nama Regu",
-                            "Jenis Gangguan"
-                        ]
-                    ].copy()
-
-                    st.dataframe(
-                        df_label.head(10),
-                        use_container_width=True,
-                        hide_index=True
-                    )
 
                 with col_chart:
                     total_berhasil_label = len(df_clean_pre)
@@ -1878,6 +1878,21 @@ if menu == "📚 Tahapan":
                     #         hide_index=True
                     #     )
 
+                st.markdown("### 📄 Contoh Hasil Pelabelan")
+                df_label = df_no_dup[
+                    [
+                        "No Laporan",
+                        "Nama Regu",
+                        "Jenis Gangguan"
+                    ]
+                ].copy()
+
+                st.dataframe(
+                    df_label.head(10),
+                    use_container_width=True,
+                    hide_index=True
+                )
+            
             with tab5:
                 st.subheader("📦 Data Final")
 
@@ -1933,7 +1948,7 @@ if menu == "📚 Tahapan":
                         ],
 
                         "Status": [
-                            "Tidak digunakan",
+                            "Digunakan untuk deduplikasi",
                             "Digunakan untuk pelabelan",
                             "Digunakan sebagai fitur",
                             "Digunakan sebagai fitur",
@@ -2787,7 +2802,7 @@ if menu == "📚 Tahapan":
 
             with tab1:
                 # =============================
-                # RINGKASAN ROOT NODE & RANKING GAIN
+                # RINGKASAN DATA LATIH
                 # =============================
                 df_gain = get_information_gain_ranking(
                     train_df,
@@ -2799,287 +2814,62 @@ if menu == "📚 Tahapan":
                     lambda x: f"{x:.3f}"
                 )
 
-                df_ringkasan_root = pd.DataFrame({
+                df_ringkasan_latih = pd.DataFrame({
                     "Komponen": [
-                        "Jumlah Data Latih",
+                        "Total Data",
                         "Jumlah Berat",
-                        "Jumlah Ringan",
-                        "Entropy Root",
-                        "Root Node",
-                        "Information Gain Root Node"
+                        "Jumlah Ringan"
                     ],
                     "Nilai": [
                         n,
                         n_berat,
-                        n_ringan,
-                        f"{entropy_val:.3f}",
-                        root,
-                        f"{root_gain:.3f}"
+                        n_ringan
                     ]
                 })
 
-                st.markdown("### 📊 Ringkasan Root Node & Ranking Information Gain")
+                st.markdown("### Ringkasan Data Latih")
+                st.dataframe(
+                    df_ringkasan_latih,
+                    use_container_width=True,
+                    hide_index=True
+                )
 
-                col_root_summary, col_root_rank = st.columns([0.9, 1.6])
+                insight_box(
+                    "Penjelasan Ringkasan Data Latih",
+                    f"Data latih merupakan data yang digunakan untuk membentuk pohon keputusan ID3. "
+                    f"Pada penelitian ini, data latih berjumlah <b>{n}</b> data, terdiri dari "
+                    f"<b>{n_berat}</b> data kelas Berat dan <b>{n_ringan}</b> data kelas Ringan. "
+                    f"Komposisi kelas ini digunakan sebagai dasar untuk menghitung entropy data latih "
+                    f"pada tahap berikutnya.",
+                    color="#2563eb"
+                )
 
-                with col_root_summary:
-                    st.markdown("#### 🧾 Ringkasan Root Node")
+                # =============================
+                # PERHITUNGAN ENTROPY DATA LATIH
+                # =============================
+                st.markdown("### Perhitungan Entropy Data Latih")
+                st.markdown(
+                    f"""
+                    **Entropy(S)** = -(({n_berat}/{n}) × log₂({n_berat}/{n})) - (({n_ringan}/{n}) × log₂({n_ringan}/{n}))
 
-                    st.dataframe(
-                        df_ringkasan_root,
-                        use_container_width=True,
-                        hide_index=True
-                    )
-
-                    st.caption(
-                        "Ringkasan ini menunjukkan kondisi awal data latih sebelum pemilihan root node."
-                    )
-
-                with col_root_rank:
-                    st.markdown("#### 📈 Ranking Information Gain")
-
-                    st.dataframe(
-                        df_gain,
-                        use_container_width=True,
-                        hide_index=True
-                    )
-
-                    st.success(
-                        f"Root node terpilih: **{root}** dengan Information Gain **{root_gain:.3f}**"
-                    )
-
-                with st.expander("🧮 Lihat Rumus Entropy dan Information Gain", expanded=False):
-                    # =============================
-                    # RUMUS ENTROPY ROOT
-                    # =============================
-                    st.markdown("### 🧮 Rumus Entropy Root Node")
-
-                    components.html(f"""
-                    <div style="
-                        font-family: Arial, sans-serif;
-                        background: #ffffff;
-                        border: 1px solid #bfdbfe;
-                        border-left: 6px solid #2563eb;
-                        border-radius: 14px;
-                        padding: 18px 22px;
-                        margin: 8px 0 22px 0;
-                        box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
-                    ">
-                        <div style="
-                            font-size: 0.78rem;
-                            color: #64748b;
-                            font-weight: 800;
-                            letter-spacing: 0.06em;
-                            text-transform: uppercase;
-                            margin-bottom: 10px;
-                        ">
-                            Perhitungan Entropy Root Node
-                        </div>
-
-                        <div style="
-                            display: grid;
-                            grid-template-columns: repeat(3, 1fr);
-                            gap: 12px;
-                            margin-bottom: 18px;
-                        ">
-                            <div style="background:#eff6ff;border-radius:10px;padding:12px;">
-                                <div style="font-size:0.8rem;color:#64748b;font-weight:700;">Total Data Latih</div>
-                                <div style="font-size:1.4rem;color:#1d4ed8;font-weight:800;">{n}</div>
-                            </div>
-
-                            <div style="background:#fef2f2;border-radius:10px;padding:12px;">
-                                <div style="font-size:0.8rem;color:#64748b;font-weight:700;">Jumlah Berat</div>
-                                <div style="font-size:1.4rem;color:#dc2626;font-weight:800;">{n_berat}</div>
-                            </div>
-
-                            <div style="background:#f0fdf4;border-radius:10px;padding:12px;">
-                                <div style="font-size:0.8rem;color:#64748b;font-weight:700;">Jumlah Ringan</div>
-                                <div style="font-size:1.4rem;color:#16a34a;font-weight:800;">{n_ringan}</div>
-                            </div>
-                        </div>
-
-                        <div style="
-                            background:#f8fafc;
-                            border:1px solid #e2e8f0;
-                            border-radius:12px;
-                            padding:16px;
-                            color:#0f172a;
-                            font-size:1rem;
-                            line-height:1.8;
-                        ">
-                            <b>Entropy(S)</b> =
-                            -(({n_berat}/{n}) × log<sub>2</sub>({n_berat}/{n}))
-                            -(({n_ringan}/{n}) × log<sub>2</sub>({n_ringan}/{n}))
-                            <br>
-                            <b>Entropy(S)</b> =
-                            <span style="
-                                background:#dcfce7;
-                                color:#166534;
-                                padding:4px 10px;
-                                border-radius:999px;
-                                font-weight:800;
-                            ">
-                                {entropy_val:.3f}
-                            </span>
-                        </div>
-                    </div>
-                    """, height=280, scrolling=False)
-
-                    # =============================
-                    # RUMUS INFORMATION GAIN
-                    # =============================
-                    st.markdown("### 🧮 Rumus Information Gain")
-                    
-                    # Contoh perhitungan Information Gain untuk atribut Dampak Kerusakan
-                    atribut_contoh_gain = "Dampak Kerusakan"
-
-                    detail_gain_rows = []
-
-                    for nilai in sorted(train_df[atribut_contoh_gain].dropna().unique()):
-                        subset_nilai = train_df[
-                            train_df[atribut_contoh_gain] == nilai
-                        ]
-
-                        jumlah_nilai = len(subset_nilai)
-
-                        entropy_nilai = calculate_entropy(
-                            subset_nilai[target_Y]
-                        )
-
-                        bobot_nilai = jumlah_nilai / n
-                        weighted_entropy_nilai = bobot_nilai * entropy_nilai
-
-                        detail_gain_rows.append({
-                            "Nilai Atribut": nilai,
-                            "Jumlah Data": jumlah_nilai,
-                            "Entropy": round(entropy_nilai, 3),
-                            "Bobot × Entropy": round(weighted_entropy_nilai, 3)
-                        })
-
-                    df_contoh_gain = pd.DataFrame(detail_gain_rows)
-
-                    total_weighted_entropy = df_contoh_gain["Bobot × Entropy"].sum()
-                    gain_contoh = entropy_val - total_weighted_entropy
-
-                    rumus_weighted_entropy = " + ".join([
-                        f"({row['Jumlah Data']}/{n} × {row['Entropy']:.3f})"
-                        for _, row in df_contoh_gain.iterrows()
-                    ])
-
-                    components.html(f"""
-                    <div style="
-                        font-family: Arial, sans-serif;
-                        background: #ffffff;
-                        border: 1px solid #cbd5e1;
-                        border-left: 6px solid #7c3aed;
-                        border-radius: 14px;
-                        padding: 18px 22px;
-                        margin: 8px 0 22px 0;
-                        box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
-                    ">
-                        <div style="
-                            font-size: 0.78rem;
-                            color: #64748b;
-                            font-weight: 800;
-                            letter-spacing: 0.06em;
-                            text-transform: uppercase;
-                            margin-bottom: 10px;
-                        ">
-                            Rumus Information Gain
-                        </div>
-
-                        <div style="
-                            background:#f8fafc;
-                            border:1px solid #e2e8f0;
-                            border-radius:12px;
-                            padding:16px;
-                            color:#0f172a;
-                            font-size:1rem;
-                            line-height:1.8;
-                            margin-bottom:14px;
-                        ">
-                            <b>Gain(S, A)</b> =
-                            Entropy(S) − Σ
-                            ((Jumlah data cabang / Total data) × Entropy cabang)
-                        </div>
-                        
-                        <div style="
-                            background:#faf5ff;
-                            border:1px solid #ddd6fe;
-                            border-radius:12px;
-                            padding:16px;
-                            color:#0f172a;
-                            font-size:1rem;
-                            line-height:1.8;
-                            margin-bottom:14px;
-                        ">
-                            <b>Contoh Perhitungan Gain Atribut {atribut_contoh_gain}</b>
-                            <br><br>
-
-                            Weighted Entropy({atribut_contoh_gain}) =
-                            {rumus_weighted_entropy}
-                            <br>
-
-                            Weighted Entropy({atribut_contoh_gain}) =
-                            <b>{total_weighted_entropy:.3f}</b>
-                            <br><br>
-
-                            Gain(S, {atribut_contoh_gain}) =
-                            {entropy_val:.3f} − {total_weighted_entropy:.3f}
-                            <br>
-
-                            Gain(S, {atribut_contoh_gain}) =
-                            <span style="
-                                background:#ede9fe;
-                                color:#6d28d9;
-                                padding:4px 10px;
-                                border-radius:999px;
-                                font-weight:800;
-                            ">
-                                {gain_contoh:.3f}
-                            </span>
-                        </div>
-                        
-                        <div style="
-                            display:grid;
-                            grid-template-columns: 1fr 1fr;
-                            gap:12px;
-                            margin-bottom:14px;
-                        ">
-                            <div style="background:#f1f5f9;border-radius:10px;padding:12px;">
-                                <div style="font-weight:800;color:#334155;margin-bottom:6px;">Keterangan</div>
-                                <div style="font-size:0.92rem;color:#475569;line-height:1.7;">
-                                    <b>S</b> = dataset pada node saat ini<br>
-                                    <b>A</b> = atribut yang sedang dihitung<br>
-                                    <b>Entropy(S)</b> = entropy node awal<br>
-                                    <b>Entropy cabang</b> = entropy dari setiap nilai atribut
-                                </div>
-                            </div>
-
-                            <div style="background:#faf5ff;border-radius:10px;padding:12px;">
-                                <div style="font-weight:800;color:#6d28d9;margin-bottom:6px;">Hasil Root Node</div>
-                                <div style="font-size:0.92rem;color:#475569;line-height:1.7;">
-                                    Atribut dengan Information Gain tertinggi adalah:<br>
-                                    <span style="
-                                        display:inline-block;
-                                        background:#ede9fe;
-                                        color:#6d28d9;
-                                        padding:4px 10px;
-                                        border-radius:999px;
-                                        font-weight:800;
-                                        margin-top:4px;
-                                    ">
-                                        {root}
-                                    </span>
-                                    <br>
-                                    Nilai Information Gain:
-                                    <b style="color:#6d28d9;">{root_gain:.3f}</b>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    """, height=630, scrolling=False)
+                    **Entropy(S)** = **{entropy_val:.3f}**
+                    """
+                )
                 
+                df_entropy_latih = pd.DataFrame({
+                    "Komponen": [
+                        "Entropy Data Latih"
+                    ],
+                    "Nilai": [
+                        f"{entropy_val:.3f}"
+                    ]
+                })
+
+                st.info(
+                    f"Nilai entropy data latih adalah **{entropy_val:.3f}**. "
+                    "Nilai ini digunakan sebagai entropy awal dalam perhitungan information gain setiap atribut."
+                )
+
                 # =============================
                 # PERHITUNGAN DETAIL PER ATRIBUT
                 # =============================
@@ -3100,31 +2890,24 @@ if menu == "📚 Tahapan":
                 
                 col_t, col_c = st.columns([1,1])
                 with col_t:
-                    df_entropy_tampil = df_entropy.copy()
-
-                    # Kolom Proporsi disembunyikan di tahap Modeling
-                    # karena sudah ditampilkan pada tahap EDA.
-                    df_entropy_tampil = df_entropy_tampil.drop(
-                        columns=["Proporsi"],
-                        errors="ignore"
-                    )
-
-                    if "Entropy" in df_entropy_tampil.columns:
-                        df_entropy_tampil["Entropy"] = df_entropy_tampil["Entropy"].apply(
-                            lambda x: f"{x:.3f}"
-                        )
-
-                    if "Proporsi" in df_entropy_tampil.columns:
-                        df_entropy_tampil["Proporsi"] = df_entropy_tampil["Proporsi"].apply(
-                            lambda x: f"{x:.3f} ({x * 100:.2f}%)"
-                        )
+                    df_entropy_tampil = format_tabel_detail_id3(df_entropy)
 
                     st.dataframe(
                         df_entropy_tampil,
                         use_container_width=True,
                         hide_index=True
                     )
-                    
+
+                    insight_box(
+                        "Penjelasan Detail Perhitungan Atribut",
+                        f"Tabel menunjukkan setiap nilai yang ada pada atribut tersebut, jumlah datanya, serta "
+                        f"pembagian kelas Ringan dan Berat. Nilai entropy digunakan untuk melihat apakah data "
+                        f"pada nilai atribut tersebut masih bercampur atau sudah mengarah pada satu kelas. "
+                        f"Semakin kecil nilai entropy, maka data pada nilai tersebut semakin jelas mengarah "
+                        f"ke salah satu kelas. ",
+                        color="#2563eb"
+                    )
+
                 with col_c:
                     fig, ax = plt.subplots(figsize=(5,3.5))
                     
@@ -3141,8 +2924,83 @@ if menu == "📚 Tahapan":
                     ax.set_ylabel("Entropy"); plt.xticks(rotation=30, ha="right", fontsize=8); plt.tight_layout()
                     ax.yaxis.set_major_formatter(FormatStrFormatter("%.3f"))
                     st.pyplot(fig)
-                
-                st.success(f"Information Gain ({atribut_pilih}): **{gain:.3f}**")
+
+                # =============================
+                # RANKING INFORMATION GAIN DATA LATIH
+                # =============================
+                st.markdown("---")
+                st.subheader("Ranking Information Gain Data Latih")
+
+                df_gain_tampil = df_gain.copy()
+
+                df_gain_tampil.insert(
+                    0,
+                    "Ranking",
+                    [str(i) for i in range(1, len(df_gain_tampil) + 1)]
+                )
+
+                col_rank_tabel, col_rank_chart = st.columns([1, 1])
+
+                with col_rank_tabel:
+                    st.dataframe(
+                        df_gain_tampil.style.set_properties(
+                            subset=["Ranking"],
+                            **{"text-align": "center"}
+                        ),
+                        use_container_width=True,
+                        hide_index=True
+                    )
+
+                with col_rank_chart:
+                    df_gain_chart = df_gain_tampil.copy()
+
+                    df_gain_chart["Information Gain"] = df_gain_chart["Information Gain"].astype(float)
+
+                    fig, ax = plt.subplots(figsize=(5.5, 3.8))
+
+                    bars = ax.barh(
+                        df_gain_chart["Atribut"],
+                        df_gain_chart["Information Gain"],
+                        color="#16a34a",
+                        edgecolor="white"
+                    )
+
+                    ax.bar_label(
+                        bars,
+                        fmt="%.3f",
+                        fontsize=9,
+                        padding=3
+                    )
+
+                    ax.set_title(
+                        "Ranking Information Gain",
+                        fontweight="bold"
+                    )
+
+                    ax.set_xlabel("Information Gain")
+                    ax.invert_yaxis()
+                    ax.xaxis.set_major_formatter(FormatStrFormatter("%.3f"))
+
+                    plt.tight_layout()
+                    st.pyplot(fig)
+
+                st.success(
+                    f"Root node terpilih adalah **{root}** karena memiliki nilai Information Gain "
+                    f"tertinggi sebesar **{root_gain:.3f}**."
+                )
+
+                insight_box(
+                    "Penjelasan Ranking Information Gain",
+                    f"Tabel dan grafik ranking information gain menunjukkan hasil perhitungan gain "
+                    f"pada seluruh atribut data latih. Nilai information gain diperoleh dari entropy "
+                    f"data latih yang dikurangi dengan total bobot entropy cabang pada masing-masing atribut. "
+                    f"Semakin besar nilai information gain, semakin baik atribut tersebut dalam memisahkan "
+                    f"data ke dalam kelas Ringan dan Berat. Berdasarkan hasil perhitungan, atribut "
+                    f"<b>{root}</b> berada pada ranking pertama dengan nilai information gain sebesar "
+                    f"<b>{root_gain:.3f}</b>, sehingga atribut tersebut dipilih sebagai root node pada "
+                    f"pohon keputusan ID3.",
+                    color="#16a34a"
+                )
                 
                 # =============================
                 # RECURSIVE ID3 EXPLORER
@@ -3202,11 +3060,32 @@ if menu == "📚 Tahapan":
                     df_cabang_root["Entropy"] > 0
                 ]["Nilai Cabang Root"].tolist()
 
-                with st.expander("📌 Lihat Status Kemurnian Cabang Root", expanded=False):
-                    st.dataframe(
-                        df_cabang_root_tampil,
-                        use_container_width=True,
-                        hide_index=True
+                df_cabang_belum_murni = df_cabang_root[
+                    df_cabang_root["Entropy"] > 0
+                ].copy()
+
+                if not df_cabang_belum_murni.empty:
+                    df_cabang_belum_murni_tampil = df_cabang_belum_murni.copy()
+
+                    df_cabang_belum_murni_tampil["Entropy"] = df_cabang_belum_murni_tampil["Entropy"].apply(
+                        lambda x: f"{x:.3f}"
+                    )
+
+                    with st.expander("📌 Lihat Cabang Root yang Belum Murni", expanded=False):
+                        st.info(
+                            "Tabel ini hanya menampilkan cabang pada root node yang masih memiliki entropy lebih dari 0, "
+                            "sehingga perlu dilanjutkan ke proses pembentukan node berikutnya."
+                        )
+
+                        st.dataframe(
+                            df_cabang_belum_murni_tampil,
+                            use_container_width=True,
+                            hide_index=True
+                        )
+
+                else:
+                    st.success(
+                        "Semua cabang pada root node sudah murni, sehingga tidak ada cabang root yang perlu diproses lebih lanjut."
                     )
 
                 if SHOW_RECURSIVE_ID3:
@@ -3217,7 +3096,7 @@ if menu == "📚 Tahapan":
                     st.info(
                         """
                         Bagian ini menampilkan proses pembentukan node lanjutan pada algoritma ID3
-                        secara bertahap seperti perhitungan manual.
+                        secara bertahap.
 
                         Jika suatu node sudah murni, maka node tersebut menjadi leaf node dan
                         proses rekursif pada cabang tersebut dihentikan.
@@ -3473,12 +3352,7 @@ if menu == "📚 Tahapan":
                                 col_detail_1, col_chart_1 = st.columns([1, 1])
 
                                 with col_detail_1:
-                                    df_detail_1_tampil = df_detail_1.copy()
-
-                                    if "Entropy" in df_detail_1_tampil.columns:
-                                        df_detail_1_tampil["Entropy"] = df_detail_1_tampil["Entropy"].apply(
-                                            lambda x: f"{x:.3f}"
-                                        )
+                                    df_detail_1_tampil = format_tabel_detail_id3(df_detail_1)
 
                                     st.dataframe(
                                         df_detail_1_tampil,
@@ -3811,11 +3685,6 @@ if menu == "📚 Tahapan":
                                             with col_detail_2:
                                                 df_detail_2_tampil = df_detail_2.copy()
 
-                                                if "Entropy" in df_detail_2_tampil.columns:
-                                                    df_detail_2_tampil["Entropy"] = df_detail_2_tampil["Entropy"].apply(
-                                                        lambda x: f"{x:.3f}"
-                                                    )
-
                                                 st.dataframe(
                                                     df_detail_2_tampil,
                                                     use_container_width=True,
@@ -4048,12 +3917,7 @@ if menu == "📚 Tahapan":
                                                             col_detail_3, col_chart_3 = st.columns([1, 1])
 
                                                             with col_detail_3:
-                                                                df_detail_3_tampil = df_detail_3.copy()
-
-                                                                if "Entropy" in df_detail_3_tampil.columns:
-                                                                    df_detail_3_tampil["Entropy"] = df_detail_3_tampil["Entropy"].apply(
-                                                                        lambda x: f"{x:.3f}"
-                                                                    )
+                                                                df_detail_3_tampil = format_tabel_detail_id3(df_detail_3)
 
                                                                 st.dataframe(
                                                                     df_detail_3_tampil,
@@ -4093,6 +3957,106 @@ if menu == "📚 Tahapan":
                                                                 f"Catatan: Level 3 ini hanya tampilan opsional. "
                                                                 f"Node berikutnya tetap dipilih berdasarkan Information Gain tertinggi, yaitu {next_attr_3}."
                                                             )
+
+                # =============================
+                # RUMUS ALGORITMA ID3
+                # =============================
+                st.markdown("---")
+
+                with st.expander("📐 Lihat Rumus Algoritma ID3", expanded=False):
+                    st.markdown("### Rumus Entropy")
+
+                    st.markdown(
+                        """
+                        **Entropy(S)** = -Σ pᵢ × log₂(pᵢ)
+
+                        Keterangan:
+
+                        **S** = himpunan data atau dataset pada suatu node  
+                        **pᵢ** = proporsi data pada kelas ke-i  
+                        **i** = kelas target, yaitu Ringan dan Berat
+                        """
+                    )
+
+                    st.markdown("---")
+
+                    st.markdown("### Rumus Information Gain")
+
+                    st.markdown(
+                        """
+                        **Gain(S, A)** = Entropy(S) - Σ ((|Sᵥ| / |S|) × Entropy(Sᵥ))
+
+                        Keterangan:
+
+                        **S** = himpunan data pada node yang sedang dihitung  
+                        **A** = atribut yang diuji  
+                        **v** = nilai yang terdapat pada atribut A  
+                        **Sᵥ** = subset data yang memiliki nilai v pada atribut A  
+                        **|Sᵥ|** = jumlah data pada subset Sᵥ  
+                        **|S|** = jumlah seluruh data pada node S
+                        """
+                    )
+
+                    st.info(
+                        "Pada algoritma ID3, entropy digunakan untuk mengukur ketidakpastian kelas pada data. "
+                        "Information gain digunakan untuk menentukan atribut terbaik. Atribut dengan nilai "
+                        "information gain tertinggi dipilih sebagai node pada pohon keputusan."
+                    )
+
+                    # =============================
+                    # CONTOH ANGKA INFORMATION GAIN ATRIBUT FASILITAS
+                    # =============================
+                    st.markdown("---")
+                    st.markdown("### Contoh Perhitungan Information Gain Atribut Fasilitas")
+
+                    hasil_contoh_fasilitas = get_information_gain_detail(
+                        train_df,
+                        "Fasilitas",
+                        target_Y
+                    )
+
+                    df_contoh_fasilitas = hasil_contoh_fasilitas["detail_df"].copy()
+                    gain_contoh_fasilitas = hasil_contoh_fasilitas["information_gain"]
+
+                    df_contoh_tampil = df_contoh_fasilitas.copy()
+
+                    st.dataframe(
+                        df_contoh_tampil,
+                        use_container_width=True,
+                        hide_index=True
+                    )
+
+                    weighted_entropy_fasilitas = (
+                        df_contoh_fasilitas["Proporsi"] * df_contoh_fasilitas["Entropy"]
+                    ).sum()
+
+                    daftar_bobot_entropy = []
+
+                    for _, row in df_contoh_fasilitas.iterrows():
+                        daftar_bobot_entropy.append(
+                            f"({int(row['Jumlah'])}/{n} × {row['Entropy']:.3f})"
+                        )
+
+                    teks_bobot_entropy = " + ".join(daftar_bobot_entropy)
+
+                    st.markdown(
+                        f"""
+                        **Substitusi ke rumus Information Gain atribut Fasilitas:**
+
+                        **Gain(S, Fasilitas)** = Entropy(S) - Σ ((|Sᵥ| / |S|) × Entropy(Sᵥ))
+
+                        **Gain(S, Fasilitas)** = {entropy_val:.3f} - [{teks_bobot_entropy}]
+
+                        **Gain(S, Fasilitas)** = {entropy_val:.3f} - {weighted_entropy_fasilitas:.3f}
+
+                        **Gain(S, Fasilitas)** = **{gain_contoh_fasilitas:.3f}**
+                        """
+                    )
+
+                    st.success(
+                        f"Berdasarkan contoh perhitungan tersebut, nilai Information Gain atribut "
+                        f"**Fasilitas** adalah **{gain_contoh_fasilitas:.3f}**."
+                    )
 
             with tab2:
                 st.subheader("🌲 Struktur Pohon Keputusan")
