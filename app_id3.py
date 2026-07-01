@@ -563,7 +563,7 @@ if menu == "📚 Tahapan":
     # =========================================================
     if tahap == "📌 Business Understanding":
         st.title("📌 Business Understanding")
-        st.caption("Pemahaman konteks bisnis, permasalahan, kebutuhan solusi, dan tujuan penelitian")
+        st.caption("Pemahaman konteks bisnis, permasalahan, kebutuhan solusi, tujuan penelitian, variabel penelitian, alur tahapan, dan output penelitian")
         st.markdown("---")
 
         # =============================
