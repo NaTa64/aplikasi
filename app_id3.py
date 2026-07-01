@@ -2035,47 +2035,47 @@ if menu == "📚 Tahapan":
                     # =============================
                     # RINGKASAN DATASET FINAL
                     # =============================
-                    kelas_target = ", ".join(
-                        sorted(df_final[target_Y].unique())
-                    )
+                    # kelas_target = ", ".join(
+                    #     sorted(df_final[target_Y].unique())
+                    # )
 
-                    col1, col2 = st.columns(2)
-                    col1.metric("Jumlah Fitur", len(fitur_X))
-                    col2.metric("Kelas Target", kelas_target)
+                    # col1, col2 = st.columns(2)
+                    # col1.metric("Jumlah Fitur", len(fitur_X))
+                    # col2.metric("Kelas Target", kelas_target)
 
-                    # =============================
-                    # VALIDASI DATA SIAP MODELING
-                    # =============================
-                    st.markdown("### 🧪 Validasi Data Siap Modeling")
+                    # # =============================
+                    # # VALIDASI DATA SIAP MODELING
+                    # # =============================
+                    # st.markdown("### 🧪 Validasi Data Siap Modeling")
 
-                    missing_model = (
-                        df_final[fitur_X + [target_Y]]
-                        .isnull()
-                        .sum()
-                        .reset_index()
-                    )
+                    # missing_model = (
+                    #     df_final[fitur_X + [target_Y]]
+                    #     .isnull()
+                    #     .sum()
+                    #     .reset_index()
+                    # )
 
-                    missing_model.columns = [
-                        "Kolom Model",
-                        "Jumlah Missing"
-                    ]
+                    # missing_model.columns = [
+                    #     "Kolom Model",
+                    #     "Jumlah Missing"
+                    # ]
 
-                    st.dataframe(
-                        missing_model,
-                        use_container_width=True,
-                        hide_index=True
-                    )
+                    # st.dataframe(
+                    #     missing_model,
+                    #     use_container_width=True,
+                    #     hide_index=True
+                    # )
 
-                    total_missing_model = missing_model["Jumlah Missing"].sum()
+                    # total_missing_model = missing_model["Jumlah Missing"].sum()
 
-                    if total_missing_model == 0:
-                        st.success(
-                            "Tidak terdapat missing value pada fitur dan target yang digunakan untuk modeling ID3."
-                        )
-                    else:
-                        st.warning(
-                            f"Terdapat **{total_missing_model} missing value** pada kolom yang digunakan untuk modeling."
-                        )
+                    # if total_missing_model == 0:
+                    #     st.success(
+                    #         "Tidak terdapat missing value pada fitur dan target yang digunakan untuk modeling ID3."
+                    #     )
+                    # else:
+                    #     st.warning(
+                    #         f"Terdapat **{total_missing_model} missing value** pada kolom yang digunakan untuk modeling."
+                    #     )
                     
                     # =============================
                     # DATA FINAL
@@ -4251,7 +4251,6 @@ if menu == "📚 Tahapan":
                         font-size: 0.72rem;
                         font-weight: 800;
                     ">
-                        METRIK UTAMA
                     </div>
 
                     <div style="font-size: 2rem; margin-bottom: 8px;">🎯</div>
@@ -4632,7 +4631,6 @@ if menu == "📚 Tahapan":
                             font-size: 0.72rem;
                             font-weight: 800;
                         ">
-                            METRIK UTAMA CV
                         </div>
 
                         <div style="font-size: 2rem; margin-bottom: 8px;">🎯</div>
@@ -4745,7 +4743,7 @@ if menu == "📚 Tahapan":
                     
                 with col_r:
                     st.subheader("📊 Evaluasi per Fold")
-                    df_detail_fold = cv_df[["Fold","Cabang Terbentuk","Cabang Unseen","Accuracy","Precision","Recall","F1"]].copy()
+                    df_detail_fold = cv_df[["Fold","Accuracy","Precision","Recall","F1"]].copy()
                     for col_m in ["Accuracy","Precision","Recall","F1"]:
                         df_detail_fold[col_m] = df_detail_fold[col_m].apply(lambda x: f"{x*100:.2f}%")
                     st.dataframe(df_detail_fold, use_container_width=True, hide_index=True)
@@ -5008,24 +5006,23 @@ if menu == "📚 Tahapan":
                 else:
                     st.warning("⚠️ Data final belum tersedia. Silakan lakukan Data Preparation terlebih dahulu.")
                 
-                st.markdown("---")
-                
-                st.subheader("📊 Visualisasi K-Fold Cross Validation")
-                n_folds = len(cv_df)
-                fig, ax = plt.subplots(figsize=(10,4)); ax.set_facecolor("#f8fafc")
-                for i in range(n_folds):
-                    f1_v = cv_df.iloc[i]["F1"]
-                    for j in range(n_folds):
-                        if j==i:
-                            ax.add_patch(plt.Rectangle((j,n_folds-i-1),1,0.75,color="#f59e0b",alpha=0.9,linewidth=0))
-                            ax.text(j+0.5,n_folds-i-1+0.375,f"Uji\nF1:{f1_v*100:.2f}%",ha="center",va="center",fontsize=8,fontweight="bold")
-                        else:
-                            ax.add_patch(plt.Rectangle((j,n_folds-i-1),1,0.75,color="#3b82f6",alpha=0.8,linewidth=0))
-                            ax.text(j+0.5,n_folds-i-1+0.375,"Latih",ha="center",va="center",fontsize=8,color="white")
-                for i in range(n_folds):
-                    ax.text(-0.35,n_folds-i-1+0.35,str(i+1),ha="center",va="center",fontsize=12,fontweight="bold",color="#1e3a5f")
-                ax.set_xlim(-0.6,n_folds); ax.set_ylim(0,n_folds); ax.axis("off")
-                plt.tight_layout(); st.pyplot(fig)
+                # st.markdown("---")
+                # st.subheader("📊 Visualisasi K-Fold Cross Validation")
+                # n_folds = len(cv_df)
+                # fig, ax = plt.subplots(figsize=(10,4)); ax.set_facecolor("#f8fafc")
+                # for i in range(n_folds):
+                #     f1_v = cv_df.iloc[i]["F1"]
+                #     for j in range(n_folds):
+                #         if j==i:
+                #             ax.add_patch(plt.Rectangle((j,n_folds-i-1),1,0.75,color="#f59e0b",alpha=0.9,linewidth=0))
+                #             ax.text(j+0.5,n_folds-i-1+0.375,f"Uji\nF1:{f1_v*100:.2f}%",ha="center",va="center",fontsize=8,fontweight="bold")
+                #         else:
+                #             ax.add_patch(plt.Rectangle((j,n_folds-i-1),1,0.75,color="#3b82f6",alpha=0.8,linewidth=0))
+                #             ax.text(j+0.5,n_folds-i-1+0.375,"Latih",ha="center",va="center",fontsize=8,color="white")
+                # for i in range(n_folds):
+                #     ax.text(-0.35,n_folds-i-1+0.35,str(i+1),ha="center",va="center",fontsize=12,fontweight="bold",color="#1e3a5f")
+                # ax.set_xlim(-0.6,n_folds); ax.set_ylim(0,n_folds); ax.axis("off")
+                # plt.tight_layout(); st.pyplot(fig)
 
                 st.markdown("---")
                 
