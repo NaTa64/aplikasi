@@ -785,7 +785,36 @@ if menu == "📚 Tahapan":
         st.markdown("<br>", unsafe_allow_html=True)
 
         # =============================
-        # BAGIAN 3 — VARIABEL PENELITIAN
+        # BAGIAN 3 — TUJUAN Penelitian
+        # =============================
+        st.markdown("## 🎯 Tujuan Penelitian")
+
+        st.markdown("""
+        <div style="
+            background:#ffffff;border:1px solid #e2e8f0;border-top:5px solid #2563eb;
+            border-radius:14px;padding:20px 22px;
+            box-shadow:0 2px 8px rgba(15,23,42,0.05);
+        ">
+            <div style="font-size:0.75rem;color:#64748b;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:14px;">
+                🎯 Tujuan Penelitian
+            </div>
+            <div style="display:grid;gap:10px;">
+                <div style="display:flex;gap:10px;align-items:flex-start;">
+                    <div style="min-width:26px;height:26px;background:#dbeafe;color:#1d4ed8;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:0.78rem;">1</div>
+                    <div style="color:#1a202c;font-size:0.88rem;line-height:1.6;">Membangun dan mengevaluasi model klasifikasi tingkat gangguan listrik menggunakan metode Decision Tree dengan algoritma ID3 berdasarkan data historis di PT PLN ULP Samarinda Seberang.</div>
+                </div>
+                <div style="display:flex;gap:10px;align-items:flex-start;">
+                    <div style="min-width:26px;height:26px;background:#dbeafe;color:#1d4ed8;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:0.78rem;">2</div>
+                    <div style="color:#1a202c;font-size:0.88rem;line-height:1.6;">Mengidentifikasi atribut yang paling berpengaruh dalam menentukan tingkat gangguan berdasarkan struktur pohon keputusan yang terbentuk.</div>
+                </div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        st.markdown("<br>", unsafe_allow_html=True)
+
+        # =============================
+        # BAGIAN 4 — VARIABEL PENELITIAN
         # =============================
         st.markdown("## 📊 Variabel Penelitian")
 
@@ -894,35 +923,6 @@ if menu == "📚 Tahapan":
                 </div>
             </div>
             """, unsafe_allow_html=True)
-
-        st.markdown("<br>", unsafe_allow_html=True)
-
-        # =============================
-        # BAGIAN 4 — TUJUAN Penelitian
-        # =============================
-        st.markdown("## 🎯 Tujuan Penelitian")
-
-        st.markdown("""
-        <div style="
-            background:#ffffff;border:1px solid #e2e8f0;border-top:5px solid #2563eb;
-            border-radius:14px;padding:20px 22px;
-            box-shadow:0 2px 8px rgba(15,23,42,0.05);
-        ">
-            <div style="font-size:0.75rem;color:#64748b;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:14px;">
-                🎯 Tujuan Penelitian
-            </div>
-            <div style="display:grid;gap:10px;">
-                <div style="display:flex;gap:10px;align-items:flex-start;">
-                    <div style="min-width:26px;height:26px;background:#dbeafe;color:#1d4ed8;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:0.78rem;">1</div>
-                    <div style="color:#1a202c;font-size:0.88rem;line-height:1.6;">Membangun dan mengevaluasi model klasifikasi tingkat gangguan listrik menggunakan metode Decision Tree dengan algoritma ID3 berdasarkan data historis di PT PLN ULP Samarinda Seberang.</div>
-                </div>
-                <div style="display:flex;gap:10px;align-items:flex-start;">
-                    <div style="min-width:26px;height:26px;background:#dbeafe;color:#1d4ed8;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:0.78rem;">2</div>
-                    <div style="color:#1a202c;font-size:0.88rem;line-height:1.6;">Mengidentifikasi atribut yang paling berpengaruh dalam menentukan tingkat gangguan berdasarkan struktur pohon keputusan yang terbentuk.</div>
-                </div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
 
         st.markdown("<br>", unsafe_allow_html=True)
 
@@ -2000,7 +2000,7 @@ if menu == "📚 Tahapan":
                     # HASIL Case Folding
                     # =============================
                     st.markdown("### 📄 Data Setelah Case Folding")
-                    st.dataframe(df_norm, use_container_width=True)
+                    st.dataframe(df_norm, use_container_width=True, hide_index=True)
                     
                 with tab5c:
 
