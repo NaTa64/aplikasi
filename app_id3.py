@@ -4370,10 +4370,10 @@ if menu == "📚 Tahapan":
                     df_cm_detail = pd.DataFrame({
                         "Notasi":["TP","TN","FP","FN"],
                         "Arti": [
-                            "Prediksi Berat, Aktual Berat",
-                            "Prediksi Ringan, Aktual Ringan",
-                            "Prediksi Berat, Aktual Ringan",
-                            "Prediksi Ringan, Aktual Berat"
+                            "Aktual Berat, Prediksi Berat",
+                            "Aktual Ringan, Prediksi Ringan",
+                            "Aktual Ringan, Prediksi Berat",
+                            "Aktual Berat, Prediksi Ringan "
                         ],
                         "Nilai":[tp,tn,fp,fn]
                     })
@@ -4733,6 +4733,12 @@ if menu == "📚 Tahapan":
 
                 </div>
                 """, height=220, scrolling=False)
+                st.info(
+                        "Cross validation digunakan agar pengujian model lebih adil dan tidak hanya bergantung "
+                        "pada satu pembagian data saja. Pada 5-fold cross validation, semua data mendapat giliran "
+                        "menjadi data uji secara bergantian, sehingga hasil evaluasi model lebih mewakili "
+                        "keseluruhan data."
+                    )
 
                 st.markdown("---")
                 col_l, col_r = st.columns([1,1])
@@ -4994,13 +5000,6 @@ if menu == "📚 Tahapan":
                         use_container_width=True,
                         height=430,
                         hide_index=True
-                    )
-
-                    st.info(
-                        "Cross validation digunakan agar pengujian model lebih adil dan tidak hanya bergantung "
-                        "pada satu pembagian data saja. Pada 5-fold cross validation, semua data mendapat giliran "
-                        "menjadi data uji secara bergantian, sehingga hasil evaluasi model lebih mewakili "
-                        "keseluruhan data."
                     )
 
                 else:
